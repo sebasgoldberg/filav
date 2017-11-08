@@ -86,7 +86,7 @@ class Fila(models.Model):
             return
         posto = self.postos.filter(estado=Posto.ESPERANDO_CLIENTE).first()
         posto.atender(turno)
-        posto.get_grupo().send({'message': 'FILA_AVANCOU'})
+        posto.get_grupo().send({'message': 'ATENDER_TURNO'})
         self.get_grupo().send({'message': 'FILA_AVANCOU'})
 
 class Turno(models.Model):

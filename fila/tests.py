@@ -148,7 +148,7 @@ class PostoTestCase(ChannelTestCase):
         self.assertEqual(posto1.turno_em_atencao.pk,
             Turno.objects.get(cliente=cliente1, fila=posto1.fila,
                 estado=Turno.NO_ATENDIMENTO).pk)
-        self.assertEqual(wsf1.receive()['message'], 'FILA_AVANCOU')
+        self.assertEqual(wsf1.receive()['message'], 'ATENDER_TURNO')
 
         wsf1.finalizar_atencao()
         posto1.refresh_from_db()
