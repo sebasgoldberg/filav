@@ -126,14 +126,10 @@ class PostoTestCase(ChannelTestCase):
         self.assertEqual(posto1.estado, Posto.EM_PAUSA)
         self.assertEqual(posto1.funcionario.pk, funcionario1.pk)
 
-        # El funcionario entre no grupo do posto de forma de conseguir comunicar
-        # quando teve alguma mudança de estado.
-        posto1.get_grupo().send({'text': 'ok'}, immediately=True)
-        self.assertEqual(wsf1.receive(json=False), 'ok')
-
         wsf1.chamar_seguinte()
         posto1.refresh_from_db()
         self.assertEqual(posto1.estado, Posto.ESPERANDO_CLIENTE)
+        self.assertIsNone(wsf1.receive())
 
         wsf1.pausar_atencao()
         posto1.refresh_from_db()
@@ -142,6 +138,7 @@ class PostoTestCase(ChannelTestCase):
         wsf1.chamar_seguinte()
         posto1.refresh_from_db()
         self.assertEqual(posto1.estado, Posto.ESPERANDO_CLIENTE)
+        self.assertIsNone(wsf1.receive())
 
         cliente1 = h.get_or_create_cliente('c1')
         wsc1 = WSCliente(cliente1, '/fila/')
@@ -151,6 +148,7 @@ class PostoTestCase(ChannelTestCase):
         self.assertEqual(posto1.turno_em_atencao.pk,
             Turno.objects.get(cliente=cliente1, fila=posto1.fila,
                 estado=Turno.NO_ATENDIMENTO).pk)
+        self.assertEqual(wsf1.receive()['message'], 'FILA_AVANCOU')
 
         wsf1.finalizar_atencao()
         posto1.refresh_from_db()
