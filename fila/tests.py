@@ -116,6 +116,11 @@ class WSCliente(WSUsuario):
             fila=fila,
             estado__in=[Turno.NO_ATENDIMENTO, Turno.NA_FILA])
 
+    def sair_da_fila(self, turno):
+        self.wsclient.send_and_consume('websocket.receive',
+            {'turno': turno.pk},
+            path='/fila/sair/')
+
 
 class PostoTestCase(ChannelTestCase):
 
@@ -198,3 +203,25 @@ class TurnoTestCase(ChannelTestCase):
         self.assertEqual(turno1.estado, Turno.ATENDIDO)
 
         wsf1.desocupar_posto()
+
+    def test_estados_cancelado(self):
+
+        posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
+
+        cliente1 = h.get_or_create_cliente('c1')
+
+        wsc1 = WSCliente(cliente1)
+
+        turno1 = wsc1.entrar_na_fila(posto1.fila)
+        turno1.refresh_from_db()
+        self.assertEqual(turno1.estado, Turno.NA_FILA)
+
+        wsc1.sair_da_fila(turno1)
+        turno1.refresh_from_db()
+        self.assertEqual(turno1.estado, Turno.CANCELADO)
+
+        turno1.get_grupo().send({'text':'ok'})
+        self.assertIsNone(wsc1.receive())
+        turno1.fila.get_grupo().send({'text':'ok'})
+        self.assertIsNone(wsc1.receive())
+

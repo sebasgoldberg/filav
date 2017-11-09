@@ -183,6 +183,15 @@ class Turno(models.Model):
     def get_grupo(self):
         return PersistedGroup('turno-%s' % self.pk)
 
+    def cancelar(self):
+        self.estado = Turno.CANCELADO
+        self.save()
+        tg = self.get_grupo()
+        fg = self.fila.get_grupo()
+        for channel in [x for x  in tg.channels]:
+            tg.discard(channel)
+            fg.discard(channel)
+
 class Posto(models.Model):
 
     INATIVO = 0

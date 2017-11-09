@@ -34,6 +34,7 @@ def ws_posto_desocupar(message):
     f = Funcionario.get_from_user(message.user)
     f.desocupar_posto()
 
+
 @channel_session_user_from_http
 def ws_fila_connect(message):
     message.reply_channel.send({"accept": True})
@@ -45,4 +46,10 @@ def ws_fila_entrar(message):
     t = c.entrar_na_fila(f)
     t.get_grupo().add(message.reply_channel)
     f.get_grupo().add(message.reply_channel)
+
+@channel_session_user
+def ws_fila_sair(message):
+    c = Cliente.get_from_user(message.user)
+    t = Turno.objects.get(pk=message.content['turno'], cliente=c)
+    t.cancelar()
 
