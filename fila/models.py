@@ -71,6 +71,9 @@ class Funcionario(User):
     def desocupar_posto(self):
         self.posto.desocupar()
 
+    def indicar_ausencia(self):
+        self.posto.indicar_ausencia()
+
 class Cliente(User):
 
     class Meta:
@@ -196,6 +199,13 @@ class Turno(models.Model):
             tg.discard(channel)
             fg.discard(channel)
 
+    def indicar_ausencia(self):
+        self.estado = Turno.AUSENTE
+        self.save()
+        tg = self.get_grupo()
+        tg.send({'message': 'PERDEU_O_TURNO'})
+        tg.discard_all()
+
 class Posto(models.Model):
 
     INATIVO = 0
@@ -266,6 +276,12 @@ class Posto(models.Model):
         turno.save()
         self.estado = Posto.ATENDENDO
         self.turno_em_atencao = turno
+        self.save()
+
+    def indicar_ausencia(self):
+        self.turno_em_atencao.indicar_ausencia()
+        self.estado = Posto.EM_PAUSA
+        self.turno_em_atencao = None
         self.save()
 
     def finalizar_atencao(self):

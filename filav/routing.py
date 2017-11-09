@@ -8,6 +8,7 @@ posto_routing = [
     route("websocket.receive", ws_posto_pausar, path=r'^/pausar/$'),
     route("websocket.receive", ws_posto_finalizar, path=r'^/finalizar/$'),
     route("websocket.receive", ws_posto_desocupar, path=r'^/desocupar/$'),
+    route("websocket.receive", ws_posto_ausencia, path=r'^/ausencia/$'),
     #route("websocket.disconnect", ws_disconnect_posto),
 ]
 

@@ -103,6 +103,10 @@ class WSFuncionario(WSUsuario):
         self.wsclient.send_and_consume('websocket.receive',
             path='/posto/desocupar/')
 
+    def indicar_ausencia(self):
+        self.wsclient.send_and_consume('websocket.receive',
+            path='/posto/ausencia/')
+
 class WSCliente(WSUsuario):
 
     def __init__(self, usuario, path='/fila/'):
@@ -234,3 +238,28 @@ class TurnoTestCase(ChannelTestCase):
         turno1.fila.get_grupo().send({'text':'ok'})
         self.assertIsNone(wsc1.receive(json=False))
 
+    def test_estados_ausente(self):
+
+        posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
+
+        cliente1 = h.get_or_create_cliente('c1')
+
+        wsc1 = WSCliente(cliente1)
+        turno1 = wsc1.entrar_na_fila(posto1.fila)
+
+        funcionario1 = h.get_or_create_funcionario('f1')
+        wsf1 = WSFuncionario(funcionario1)
+        wsf1.ocupar_posto(posto1)
+
+        wsf1.chamar_seguinte()
+        self.assertEqual(wsc1.receive()['message'], 'IR_NO_POSTO')
+
+        wsf1.indicar_ausencia()
+        turno1.refresh_from_db()
+        self.assertEqual(turno1.estado, Turno.AUSENTE)
+        turno1.get_grupo().send({'text':'ok'})
+        self.assertIsNone(wsc1.receive(json=False))
+
+        wsf1.desocupar_posto()
+
+ 

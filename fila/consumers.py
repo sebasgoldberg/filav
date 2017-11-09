@@ -30,6 +30,11 @@ def ws_posto_finalizar(message):
     f.finalizar_atencao()
 
 @channel_session_user
+def ws_posto_ausencia(message):
+    f = Funcionario.get_from_user(message.user)
+    f.indicar_ausencia()
+
+@channel_session_user
 def ws_posto_desocupar(message):
     f = Funcionario.get_from_user(message.user)
     f.desocupar_posto()
