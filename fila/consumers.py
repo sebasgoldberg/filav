@@ -45,3 +45,4 @@ def ws_fila_entrar(message):
     t = c.entrar_na_fila(f)
     t.get_grupo().add(message.reply_channel)
     f.get_grupo().add(message.reply_channel)
+

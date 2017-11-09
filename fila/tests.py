@@ -191,6 +191,7 @@ class TurnoTestCase(ChannelTestCase):
         turno1.refresh_from_db()
         self.assertEqual(turno1.estado, Turno.NO_ATENDIMENTO)
         self.assertEqual(wsc1.receive()['message'], 'IR_NO_POSTO')
+        self.assertIsNone(wsc1.receive())
 
         wsf1.finalizar_atencao()
         turno1.refresh_from_db()

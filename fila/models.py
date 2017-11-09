@@ -2,7 +2,46 @@ from django.db import models
 from django.utils.translation import ugettext_lazy as _
 from django.contrib.auth.models import User
 
-from channels import Group
+from channels import Channel, Group
+
+class GroupChannels(models.Model):
+
+    group_name = models.CharField(
+        max_length=100,
+        verbose_name=_('Grupo'),
+    )
+
+    channel_name = models.CharField(
+        max_length=100,
+        verbose_name=_('Canal'),
+    )
+
+    creation_date = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = (('group_name', 'channel_name'))
+
+class PersistedGroup(Group):
+
+    def add(self, channel):
+        super(PersistedGroup, self).add(channel)
+        GroupChannels.objects.get_or_create(group_name=self.name,
+            channel_name=channel.name)
+
+    def discard(self, channel):
+        super(PersistedGroup, self).discard(channel)
+        try:
+            gc = GroupChannels.objects.get(group_name=self.name,
+                channel_name=channel.name)
+            gc.delete()
+        except PersistedGroup.DoesNotExist:
+            pass
+
+    @property
+    def channels(self):
+        for gc in GroupChannels.objects.filter(group_name=self.name):
+            yield Channel(gc.channel_name)
+
 
 class Funcionario(User):
 
@@ -74,7 +113,7 @@ class Fila(models.Model):
         unique_together = (("local", "nome"),)
 
     def get_grupo(self):
-        return Group('fila-%s' % self.pk)
+        return PersistedGroup('fila-%s' % self.pk)
 
     def proximo_turno(self):
         return self.turnos.filter(estado=Turno.NA_FILA
@@ -89,9 +128,17 @@ class Fila(models.Model):
             return
         posto.atender(turno)
 
-        grupo_posto = posto.get_grupo().send({'message': 'ATENDER_TURNO'})
-        turno.get_grupo().send({'message': 'IR_NO_POSTO'})
-        self.get_grupo().send({'message': 'FILA_AVANCOU'})
+        posto.get_grupo().send({'message': 'ATENDER_TURNO'})
+
+        tg = turno.get_grupo()
+        tg.send({'message': 'IR_NO_POSTO'})
+
+        fg = self.get_grupo()
+
+        for channel in tg.channels:
+            fg.discard(channel)
+
+        fg.send({'message': 'FILA_AVANCOU'})
 
 
 class Turno(models.Model):
@@ -134,7 +181,7 @@ class Turno(models.Model):
     estado = models.IntegerField(choices=ESTADOS, default=NA_FILA)
 
     def get_grupo(self):
-        return Group('turno-%s' % self.pk)
+        return PersistedGroup('turno-%s' % self.pk)
 
 class Posto(models.Model):
 
