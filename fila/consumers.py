@@ -42,5 +42,6 @@ def ws_fila_connect(message):
 def ws_fila_entrar(message):
     c = Cliente.get_from_user(message.user)
     f = Fila.objects.get(pk=message.content['fila'])
-    c.entrar_na_fila(f)
+    t = c.entrar_na_fila(f)
+    t.get_grupo().add(message.reply_channel)
     f.get_grupo().add(message.reply_channel)

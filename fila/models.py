@@ -88,8 +88,11 @@ class Fila(models.Model):
         if posto is None:
             return
         posto.atender(turno)
-        posto.get_grupo().send({'message': 'ATENDER_TURNO'})
+
+        grupo_posto = posto.get_grupo().send({'message': 'ATENDER_TURNO'})
+        turno.get_grupo().send({'message': 'IR_NO_POSTO'})
         self.get_grupo().send({'message': 'FILA_AVANCOU'})
+
 
 class Turno(models.Model):
 
@@ -130,6 +133,8 @@ class Turno(models.Model):
 
     estado = models.IntegerField(choices=ESTADOS, default=NA_FILA)
 
+    def get_grupo(self):
+        return Group('turno-%s' % self.pk)
 
 class Posto(models.Model):
 
