@@ -68,6 +68,7 @@ from channels.test import ChannelTestCase, WSClient
 class WSUsuario:
 
     def __init__(self, usuario, path='/'):
+        self.user = usuario
         self.wsclient = WSClient()
         self.wsclient.force_login(usuario)
         self.wsclient.send_and_consume('websocket.connect', path=path)
@@ -77,6 +78,9 @@ class WSUsuario:
 
 
 class WSFuncionario(WSUsuario):
+
+    def __init__(self, usuario, path='/posto/'):
+        super(WSFuncionario, self).__init__(usuario, path)
 
     def ocupar_posto(self, posto):
         self.wsclient.send_and_consume('websocket.receive',
@@ -101,10 +105,16 @@ class WSFuncionario(WSUsuario):
 
 class WSCliente(WSUsuario):
 
+    def __init__(self, usuario, path='/fila/'):
+        super(WSCliente, self).__init__(usuario, path)
+
     def entrar_na_fila(self, fila):
         self.wsclient.send_and_consume('websocket.receive',
             {'fila': fila.pk},
             path='/fila/entrar/')
+        return Turno.objects.get(cliente=self.user,
+            fila=fila,
+            estado__in=[Turno.NO_ATENDIMENTO, Turno.NA_FILA])
 
 
 class PostoTestCase(ChannelTestCase):
@@ -118,7 +128,7 @@ class PostoTestCase(ChannelTestCase):
 
         funcionario1 = h.get_or_create_funcionario('f1')
 
-        wsf1 = WSFuncionario(funcionario1, '/posto/')
+        wsf1 = WSFuncionario(funcionario1)
 
         wsf1.ocupar_posto(posto1)
 
@@ -141,13 +151,11 @@ class PostoTestCase(ChannelTestCase):
         self.assertIsNone(wsf1.receive())
 
         cliente1 = h.get_or_create_cliente('c1')
-        wsc1 = WSCliente(cliente1, '/fila/')
-        wsc1.entrar_na_fila(posto1.fila)
+        wsc1 = WSCliente(cliente1)
+        turno1 = wsc1.entrar_na_fila(posto1.fila)
         posto1.refresh_from_db()
         self.assertEqual(posto1.estado, Posto.ATENDENDO)
-        self.assertEqual(posto1.turno_em_atencao.pk,
-            Turno.objects.get(cliente=cliente1, fila=posto1.fila,
-                estado=Turno.NO_ATENDIMENTO).pk)
+        self.assertEqual(posto1.turno_em_atencao.pk, turno1.pk)
         self.assertEqual(wsf1.receive()['message'], 'ATENDER_TURNO')
 
         wsf1.finalizar_atencao()
@@ -160,3 +168,31 @@ class PostoTestCase(ChannelTestCase):
         self.assertEqual(posto1.estado, Posto.INATIVO)
         self.assertIsNone(posto1.funcionario)
 
+
+class TurnoTestCase(ChannelTestCase):
+
+    def test_estados_atendido(self):
+
+        posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
+
+        cliente1 = h.get_or_create_cliente('c1')
+
+        wsc1 = WSCliente(cliente1)
+        turno1 = wsc1.entrar_na_fila(posto1.fila)
+
+        turno1.refresh_from_db()
+        self.assertEqual(turno1.estado, Turno.NA_FILA)
+
+        funcionario1 = h.get_or_create_funcionario('f1')
+        wsf1 = WSFuncionario(funcionario1)
+        wsf1.ocupar_posto(posto1)
+
+        wsf1.chamar_seguinte()
+        turno1.refresh_from_db()
+        self.assertEqual(turno1.estado, Turno.NO_ATENDIMENTO)
+
+        wsf1.finalizar_atencao()
+        turno1.refresh_from_db()
+        self.assertEqual(turno1.estado, Turno.ATENDIDO)
+
+        wsf1.desocupar_posto()

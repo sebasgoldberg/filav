@@ -85,6 +85,8 @@ class Fila(models.Model):
         if turno is None:
             return
         posto = self.postos.filter(estado=Posto.ESPERANDO_CLIENTE).first()
+        if posto is None:
+            return
         posto.atender(turno)
         posto.get_grupo().send({'message': 'ATENDER_TURNO'})
         self.get_grupo().send({'message': 'FILA_AVANCOU'})
