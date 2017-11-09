@@ -187,6 +187,10 @@ class TurnoTestCase(ChannelTestCase):
 
         turno1.refresh_from_db()
         self.assertEqual(turno1.estado, Turno.NA_FILA)
+        turno1.get_grupo().send({'text':'ok'})
+        self.assertEqual(wsc1.receive(json=False), 'ok')
+        turno1.fila.get_grupo().send({'text':'ok'})
+        self.assertEqual(wsc1.receive(json=False), 'ok')
 
         funcionario1 = h.get_or_create_funcionario('f1')
         wsf1 = WSFuncionario(funcionario1)
@@ -196,11 +200,16 @@ class TurnoTestCase(ChannelTestCase):
         turno1.refresh_from_db()
         self.assertEqual(turno1.estado, Turno.NO_ATENDIMENTO)
         self.assertEqual(wsc1.receive()['message'], 'IR_NO_POSTO')
-        self.assertIsNone(wsc1.receive())
+        turno1.get_grupo().send({'text':'ok'})
+        self.assertEqual(wsc1.receive(json=False), 'ok')
+        turno1.fila.get_grupo().send({'text':'ok'})
+        self.assertIsNone(wsc1.receive(json=False))
 
         wsf1.finalizar_atencao()
         turno1.refresh_from_db()
         self.assertEqual(turno1.estado, Turno.ATENDIDO)
+        turno1.get_grupo().send({'text':'ok'})
+        self.assertIsNone(wsc1.receive(json=False))
 
         wsf1.desocupar_posto()
 
@@ -221,7 +230,7 @@ class TurnoTestCase(ChannelTestCase):
         self.assertEqual(turno1.estado, Turno.CANCELADO)
 
         turno1.get_grupo().send({'text':'ok'})
-        self.assertIsNone(wsc1.receive())
+        self.assertIsNone(wsc1.receive(json=False))
         turno1.fila.get_grupo().send({'text':'ok'})
-        self.assertIsNone(wsc1.receive())
+        self.assertIsNone(wsc1.receive(json=False))
 

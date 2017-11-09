@@ -42,6 +42,10 @@ class PersistedGroup(Group):
         for gc in GroupChannels.objects.filter(group_name=self.name):
             yield Channel(gc.channel_name)
 
+    def discard_all(self):
+        for c in [c for c in self.channels]:
+            self.discard(c)
+
 
 class Funcionario(User):
 
@@ -267,6 +271,7 @@ class Posto(models.Model):
     def finalizar_atencao(self):
         self.turno_em_atencao.estado = Turno.ATENDIDO
         self.turno_em_atencao.save()
+        self.turno_em_atencao.get_grupo().discard_all()
         self.estado = Posto.EM_PAUSA
         self.turno_em_atencao = None
         self.save()
