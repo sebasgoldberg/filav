@@ -1,3 +1,6 @@
 from django.contrib import admin
+from .models import *
 
-# Register your models here.
+admin.site.register(Local)
+admin.site.register(Fila)
+admin.site.register(Posto)

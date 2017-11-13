@@ -99,6 +99,9 @@ class Local(models.Model):
         unique=True
     )
 
+    def __str__(self):
+        return self.nome
+
 
 class Fila(models.Model):
     
@@ -118,6 +121,9 @@ class Fila(models.Model):
         verbose_name = _("Fila")
         verbose_name_plural = _("Filas")
         unique_together = (("local", "nome"),)
+
+    def __str__(self):
+        return '%s.%s' % (self.local, self.nome)
 
     def get_grupo(self):
         return PersistedGroup('fila-%s' % self.pk)
@@ -237,7 +243,8 @@ class Posto(models.Model):
         verbose_name=_('Funcionario'),
         on_delete=models.PROTECT,
         null=True,
-        blank=True
+        blank=True,
+        editable=False
     )
 
     turno_em_atencao = models.ForeignKey(
@@ -245,14 +252,22 @@ class Posto(models.Model):
         verbose_name=_('Turno em atencao'),
         on_delete=models.PROTECT,
         null=True,
-        blank=True
+        blank=True,
+        editable=False
     )
 
-    estado = models.IntegerField(choices=ESTADOS, default=INATIVO)
+    estado = models.IntegerField(
+        choices=ESTADOS,
+        default=INATIVO,
+        editable=False
+        )
 
     class Meta:
         verbose_name = _("Posto")
         verbose_name_plural = _("Postos")
+
+    def __str__(self):
+        return '%s.%s' % (self.fila, self.nome)
 
     def get_grupo(self):
         return Group('posto-%s' % self.pk)
