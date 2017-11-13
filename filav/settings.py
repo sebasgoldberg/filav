@@ -25,7 +25,7 @@ SECRET_KEY = ')#m18^ab!+8ajc(sdv^duo_b@6y6tzyp4*_7a_l*%j$gv&b0pu'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['iamsoft.org', ]
 
 
 # Application definition
