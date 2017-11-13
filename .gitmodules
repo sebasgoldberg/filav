@@ -1,0 +1,3 @@
+[submodule "fila/static/fila/cliente"]
+	path = fila/static/fila/cliente
+	url = git@iamsoft.org:filav-cliente.git
