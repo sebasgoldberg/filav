@@ -46,6 +46,11 @@ class PersistedGroup(Group):
         for c in [c for c in self.channels]:
             self.discard(c)
 
+    @staticmethod
+    def remove_channel_from_groups(channel):
+        for gc in GroupChannels.objects.filter(channel_name=channel.name):
+            PersistedGroup(gc.group_name).discard(channel)
+
 
 class Funcionario(User):
 
@@ -90,6 +95,9 @@ class Cliente(User):
         )
         fila.avancar()
         return turno
+
+    def get_grupo(self):
+        return PersistedGroup('cliente-%s' % self.pk)
 
 class Local(models.Model):
 

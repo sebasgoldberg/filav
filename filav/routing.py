@@ -1,4 +1,4 @@
-from channels.routing import route, include
+from channels.routing import route, include, route_class
 from fila.consumers import *
 
 posto_routing = [
@@ -13,10 +13,7 @@ posto_routing = [
 ]
 
 fila_routing = [
-    route("websocket.connect", ws_fila_connect, path=r'^/$'),
-    route("websocket.receive", ws_fila_receive, path=r'^/$'),
-    route("websocket.receive", ws_fila_entrar, path=r'^/entrar/$'),
-    route("websocket.receive", ws_fila_sair, path=r'^/sair/$'),
+    route_class(FilaConsumer, path=r"^/"),
 ]
 
 channel_routing = [

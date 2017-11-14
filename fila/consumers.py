@@ -40,25 +40,50 @@ def ws_posto_desocupar(message):
     f.desocupar_posto()
 
 
-@channel_session_user_from_http
-def ws_fila_connect(message):
-    message.reply_channel.send({"accept": True})
+from channels.generic.websockets import JsonWebsocketConsumer
+from django.forms.models import model_to_dict
+import json
 
-@channel_session_user
-def ws_fila_receive(message):
-    print(message.content)
+class FilaConsumer(JsonWebsocketConsumer):
 
-@channel_session_user
-def ws_fila_entrar(message):
-    c = Cliente.get_from_user(message.user)
-    f = Fila.objects.get(pk=message.content['fila'])
-    t = c.entrar_na_fila(f)
-    t.get_grupo().add(message.reply_channel)
-    f.get_grupo().add(message.reply_channel)
+    # Set to True if you want it, else leave it out
+    strict_ordering = False
+    http_user = True
 
-@channel_session_user
-def ws_fila_sair(message):
-    c = Cliente.get_from_user(message.user)
-    t = Turno.objects.get(pk=message.content['turno'], cliente=c)
-    t.cancelar()
+    def connection_groups(self, **kwargs):
+        return []
+
+    def connect(self, message, **kwargs):
+        if self.message.user.is_authenticated:
+            c = Cliente.get_from_user(self.message.user)
+            c.get_grupo().add(self.message.reply_channel)
+            self.send({"accept": True})
+
+    def entrar_na_fila(self, content):
+        c = Cliente.get_from_user(self.message.user)
+        f = Fila.objects.get(pk=content['fila'])
+        t = c.entrar_na_fila(f)
+        t.get_grupo().add(self.message.reply_channel)
+        f.get_grupo().add(self.message.reply_channel)
+        c.get_grupo().send({
+            'text': json.dumps({
+            'message': 'ENTROU_NA_FILA',
+            'turno': model_to_dict(t),
+            })})
+
+    def sair_da_fila(self, content):
+        c = Cliente.get_from_user(self.message.user)
+        t = Turno.objects.get(pk=content['turno'], cliente=c)
+        t.cancelar()
+
+    def receive(self, content, **kwargs):
+        if self.message.user.is_authenticated:
+            if content['message'] == 'ENTRAR_NA_FILA':
+                self.entrar_na_fila(content)
+            elif content['message'] == 'SAIR_DA_FILA':
+                self.sair_da_fila(content)
+
+    def disconnect(self, message, **kwargs):
+        if self.message.user.is_authenticated:
+            PersistedGroup.remove_channel_from_groups(self.message.reply_channel)
 
