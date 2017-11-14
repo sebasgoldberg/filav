@@ -45,6 +45,10 @@ def ws_fila_connect(message):
     message.reply_channel.send({"accept": True})
 
 @channel_session_user
+def ws_fila_receive(message):
+    print(message.content)
+
+@channel_session_user
 def ws_fila_entrar(message):
     c = Cliente.get_from_user(message.user)
     f = Fila.objects.get(pk=message.content['fila'])
