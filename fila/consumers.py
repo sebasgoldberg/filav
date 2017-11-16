@@ -56,8 +56,17 @@ class FilaConsumer(JsonWebsocketConsumer):
     def connect(self, message, **kwargs):
         if self.message.user.is_authenticated:
             c = Cliente.get_from_user(self.message.user)
-            c.get_grupo().add(self.message.reply_channel)
+            grupo_cliente = c.get_grupo()
+            grupo_cliente.add(self.message.reply_channel)
             self.send({"accept": True})
+            grupo_cliente.send({
+                'text': json.dumps({
+                    "message": "QR_CODE",
+                    "data":{
+                        "qrcode": self.message.user.username,
+                    }
+                })
+            })
 
     def entrar_na_fila(self, content):
         c = Cliente.get_from_user(self.message.user)
@@ -67,8 +76,8 @@ class FilaConsumer(JsonWebsocketConsumer):
         f.get_grupo().add(self.message.reply_channel)
         c.get_grupo().send({
             'text': json.dumps({
-            'message': 'ENTROU_NA_FILA',
-            'turno': model_to_dict(t),
+                'message': 'ENTROU_NA_FILA',
+                'turno': model_to_dict(t),
             })})
 
     def sair_da_fila(self, content):
