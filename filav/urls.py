@@ -16,11 +16,13 @@ Including another URLconf
 from django.conf.urls import url, include
 from django.contrib import admin
 
-from fila.views import FilaViewSet
+from fila.views import *
 from rest_framework import routers
 
 router = routers.DefaultRouter()
 router.register(r'filas', FilaViewSet)
+router.register(r'turnos', TurnoViewSet)
+router.register(r'cliente/turnos/ativos', ClienteTurnosAtivosViewSet)
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),

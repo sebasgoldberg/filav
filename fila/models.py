@@ -161,8 +161,15 @@ class Fila(models.Model):
 
         fg.send({'message': 'FILA_AVANCOU'})
 
+class TurnoAtivoManager(models.Manager):
+
+    def get_queryset(self):
+        return super(TurnoAtivoManager, self).get_queryset().filter(estado__in=Turno.ESTADOS_ATIVOS)
 
 class Turno(models.Model):
+
+    objects = models.Manager()
+    ativos = TurnoAtivoManager()
 
     INICIAL = 0
     NA_FILA = 1
@@ -170,6 +177,11 @@ class Turno(models.Model):
     NO_ATENDIMENTO = 3
     AUSENTE = 4
     ATENDIDO = 5
+
+    ESTADOS_ATIVOS = [
+        NA_FILA,
+        NO_ATENDIMENTO,
+    ]
 
     ESTADOS = (
         (INICIAL, _('Inicial')),

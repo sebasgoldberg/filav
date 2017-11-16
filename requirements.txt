@@ -1,5 +1,6 @@
 channels
 djangorestframework
+djangorestframework-expander
 django-filter
 django-cors-headers
 django-python3-ldap

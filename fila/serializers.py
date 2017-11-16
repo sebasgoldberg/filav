@@ -1,8 +1,14 @@
-from .models import Fila
+from .models import *
 from rest_framework import serializers
+from expander import ExpanderSerializerMixin
 
-# Serializers define the API representation.
 class FilaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Fila
         fields = ('id', 'nome', )
+
+
+class TurnoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Turno
+        fields = ('id', 'fila', 'estado')
