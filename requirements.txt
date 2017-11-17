@@ -6,3 +6,4 @@ django-cors-headers
 django-python3-ldap
 asgi_redis
 psycopg2
+pyopenssl

@@ -85,10 +85,25 @@ class FilaConsumer(JsonWebsocketConsumer):
         t = Turno.objects.get(pk=content['turno'], cliente=c)
         t.cancelar()
 
+    def enviar_filas(self, data):
+        cliente = Cliente.objects.get(username=data['qrcode'])
+        local = Local.objects.get(pk=data['local'])
+        filas = [ model_to_dict(f) for f in local.filas.all() ]
+        print(filas)
+        cliente.get_grupo().send({
+            'text': json.dumps({
+                'message': 'FILAS_DISPONIBLES',
+                'data':{
+                    'filas': filas,
+                },
+            })})
+
     def receive(self, content, **kwargs):
         if self.message.user.is_authenticated:
             if content['message'] == 'ENTRAR_NA_FILA':
-                self.entrar_na_fila(content)
+                self.entrar_na_fila(content['data'])
+            elif content['message'] == 'ENVIAR_FILAS':
+                self.enviar_filas(content['data'])
             elif content['message'] == 'SAIR_DA_FILA':
                 self.sair_da_fila(content)
 

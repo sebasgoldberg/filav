@@ -1,0 +1,4 @@
+./manage.py runworker &
+RUNWORKER_PID="$!"
+daphne -e ssl:8443:privateKey=crt/privkey.pem:certKey=crt/fullchain.pem filav.asgi:channel_layer &
+DAPHNE_PID="$!"

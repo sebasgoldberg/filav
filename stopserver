@@ -1,0 +1,2 @@
+kill $RUNWORKER_PID
+kill $DAPHNE_PID
