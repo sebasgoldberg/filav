@@ -1,6 +1,7 @@
 from django.test import TestCase
 import fila.helpers as h
 from .models import *
+from django.forms.models import model_to_dict
 
 class FilaTestCase(TestCase):
     
@@ -114,16 +115,26 @@ class WSCliente(WSUsuario):
 
     def entrar_na_fila(self, fila):
         self.wsclient.send_and_consume('websocket.receive',
-            {'fila': fila.pk},
-            path='/fila/entrar/')
+            text={
+                'message': 'ENTRAR_NA_FILA',
+                'data': {
+                    'fila': fila.pk
+                },
+            },
+            path='/fila/')
         return Turno.objects.get(cliente=self.user,
             fila=fila,
             estado__in=[Turno.NO_ATENDIMENTO, Turno.NA_FILA])
 
     def sair_da_fila(self, turno):
         self.wsclient.send_and_consume('websocket.receive',
-            {'turno': turno.pk},
-            path='/fila/sair/')
+            text={
+                "message": "SAIR_DA_FILA",
+                "data": {
+                    'turno': turno.pk
+                },
+            },
+            path='/fila/')
 
 
 class PostoTestCase(ChannelTestCase):
@@ -187,7 +198,16 @@ class TurnoTestCase(ChannelTestCase):
         cliente1 = h.get_or_create_cliente('c1')
 
         wsc1 = WSCliente(cliente1)
+        self.assertEqual(
+            wsc1.receive(),
+            {"message": "QR_CODE", "data": {"qrcode": "c1"}}
+            )
+
         turno1 = wsc1.entrar_na_fila(posto1.fila)
+        self.assertEqual(
+            wsc1.receive(),
+            {"message": "ENTROU_NA_FILA", "turno": model_to_dict(turno1)}
+            )
 
         turno1.refresh_from_db()
         self.assertEqual(turno1.estado, Turno.NA_FILA)
@@ -224,10 +244,12 @@ class TurnoTestCase(ChannelTestCase):
         cliente1 = h.get_or_create_cliente('c1')
 
         wsc1 = WSCliente(cliente1)
+        wsc1.receive()
 
         turno1 = wsc1.entrar_na_fila(posto1.fila)
         turno1.refresh_from_db()
         self.assertEqual(turno1.estado, Turno.NA_FILA)
+        wsc1.receive()
 
         wsc1.sair_da_fila(turno1)
         turno1.refresh_from_db()
@@ -245,7 +267,16 @@ class TurnoTestCase(ChannelTestCase):
         cliente1 = h.get_or_create_cliente('c1')
 
         wsc1 = WSCliente(cliente1)
+        self.assertEqual(
+            wsc1.receive(),
+            {"message": "QR_CODE", "data": {"qrcode": "c1"}}
+            )
+
         turno1 = wsc1.entrar_na_fila(posto1.fila)
+        self.assertEqual(
+            wsc1.receive(),
+            {"message": "ENTROU_NA_FILA", "turno": model_to_dict(turno1)}
+            )
 
         funcionario1 = h.get_or_create_funcionario('f1')
         wsf1 = WSFuncionario(funcionario1)

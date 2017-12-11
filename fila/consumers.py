@@ -58,7 +58,7 @@ class FilaConsumer(JsonWebsocketConsumer):
             c = Cliente.get_from_user(self.message.user)
             grupo_cliente = c.get_grupo()
             grupo_cliente.add(self.message.reply_channel)
-            self.send({"accept": True})
+            super(FilaConsumer, self).connect(message, **kwargs)
             grupo_cliente.send({
                 'text': json.dumps({
                     "message": "QR_CODE",
@@ -89,7 +89,6 @@ class FilaConsumer(JsonWebsocketConsumer):
         cliente = Cliente.objects.get(username=data['qrcode'])
         local = Local.objects.get(pk=data['local'])
         filas = [ model_to_dict(f) for f in local.filas.all() ]
-        print(filas)
         cliente.get_grupo().send({
             'text': json.dumps({
                 'message': 'FILAS_DISPONIBLES',
@@ -105,7 +104,7 @@ class FilaConsumer(JsonWebsocketConsumer):
             elif content['message'] == 'ENVIAR_FILAS':
                 self.enviar_filas(content['data'])
             elif content['message'] == 'SAIR_DA_FILA':
-                self.sair_da_fila(content)
+                self.sair_da_fila(content['data'])
 
     def disconnect(self, message, **kwargs):
         if self.message.user.is_authenticated:
