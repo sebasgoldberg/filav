@@ -67,8 +67,8 @@ class Funcionario(User):
     def chamar_seguinte(self):
         self.posto.chamar_seguinte()
 
-    def pausar_atencao(self):
-        self.posto.pausar_atencao()
+    def cancelar_chamado(self):
+        self.posto.cancelar_chamado()
 
     def finalizar_atencao(self):
         self.posto.finalizar_atencao()
@@ -315,7 +315,7 @@ class Posto(models.Model):
         self.save()
         self.fila.avancar()
 
-    def pausar_atencao(self):
+    def cancelar_chamado(self):
         self.estado = Posto.EM_PAUSA
         self.save()
 
