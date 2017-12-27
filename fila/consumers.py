@@ -35,6 +35,11 @@ def ws_posto_ausencia(message):
     f.indicar_ausencia()
 
 @channel_session_user
+def ws_posto_atender(message):
+    f = Funcionario.get_from_user(message.user)
+    f.atender()
+
+@channel_session_user
 def ws_posto_desocupar(message):
     f = Funcionario.get_from_user(message.user)
     f.desocupar_posto()

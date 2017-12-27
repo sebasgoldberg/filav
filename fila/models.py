@@ -79,6 +79,9 @@ class Funcionario(User):
     def indicar_ausencia(self):
         self.posto.indicar_ausencia()
 
+    def atender(self):
+        self.posto.atender()
+
 class Cliente(User):
 
     class Meta:
@@ -147,9 +150,9 @@ class Fila(models.Model):
         posto = self.postos.filter(estado=Posto.ESPERANDO_CLIENTE).first()
         if posto is None:
             return
-        posto.atender(turno)
+        posto.chamar_cliente(turno)
 
-        posto.get_grupo().send({'message': 'ATENDER_TURNO'})
+        posto.get_grupo().send({'message': 'CLIENTE_CHAMADO'})
 
         tg = turno.get_grupo()
         tg.send({'message': 'IR_NO_POSTO'})
@@ -174,9 +177,10 @@ class Turno(models.Model):
     INICIAL = 0
     NA_FILA = 1
     CANCELADO = 2
-    NO_ATENDIMENTO = 3
-    AUSENTE = 4
-    ATENDIDO = 5
+    CLIENTE_CHAMADO = 3
+    NO_ATENDIMENTO = 4
+    AUSENTE = 5
+    ATENDIDO = 6
 
     ESTADOS_ATIVOS = [
         NA_FILA,
@@ -229,7 +233,14 @@ class Turno(models.Model):
         self.estado = Turno.AUSENTE
         self.save()
         tg = self.get_grupo()
-        tg.send({'message': 'PERDEU_O_TURNO'})
+        tg.send({'message': 'AUSENTE'})
+        tg.discard_all()
+
+    def atender(self):
+        self.estado = Turno.NO_ATENDIMENTO
+        self.save()
+        tg = self.get_grupo()
+        tg.send({'message': 'NO_ATENDIMENTO'})
         tg.discard_all()
 
 class Posto(models.Model):
@@ -237,12 +248,14 @@ class Posto(models.Model):
     INATIVO = 0
     EM_PAUSA = 1
     ESPERANDO_CLIENTE = 2
-    ATENDENDO = 3
+    CLIENTE_CHAMADO = 3
+    ATENDENDO = 4
 
     ESTADOS = (
         (INATIVO, _('Inativo')),
         (EM_PAUSA, _('Em pausa')),
         (ESPERANDO_CLIENTE, _('Esperando cliente')),
+        (CLIENTE_CHAMADO, _('Cliente chamado')),
         (ATENDENDO, _('Atendendo')),
     )
 
@@ -306,12 +319,17 @@ class Posto(models.Model):
         self.estado = Posto.EM_PAUSA
         self.save()
 
-    def atender(self, turno):
-        turno.estado = Turno.NO_ATENDIMENTO
+    def chamar_cliente(self, turno):
+        turno.estado = Turno.CLIENTE_CHAMADO
         turno.save()
-        self.estado = Posto.ATENDENDO
+        self.estado = Posto.CLIENTE_CHAMADO
         self.turno_em_atencao = turno
         self.save()
+
+    def atender(self):
+        self.estado = Posto.ATENDENDO
+        self.save()
+        self.turno_em_atencao.atender()
 
     def indicar_ausencia(self):
         self.turno_em_atencao.indicar_ausencia()
