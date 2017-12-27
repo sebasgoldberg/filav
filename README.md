@@ -28,9 +28,9 @@ a realizar para transitar de um estado a outro.
 A continuação ficam definidos os estados em que poderia estar um turno e as operações
 a realizar para transitar de um estado a outro.
 
-![Diagrama de Estados Turno][estados_posto]
+![Diagrama de Estados Turno][estados_turno]
 
-[estados_posto]: https://raw.githubusercontent.com/sebasgoldberg/filav/master/docs/estados-turno.png "Diagrama de Estados Turno"
+[estados_turno]: https://raw.githubusercontent.com/sebasgoldberg/filav/master/docs/estados-turno.png "Diagrama de Estados Turno"
 
 ### Frontend
 
