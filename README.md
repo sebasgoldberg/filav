@@ -25,9 +25,12 @@ a realizar para transitar de um estado a outro.
 
 [estados_posto]: https://raw.githubusercontent.com/sebasgoldberg/filav/master/docs/estados-postos.png "Diagrama de Estados Postos"
 
-A continuação ficam definidos os estados em que poderia estar um cliente e as operações
+A continuação ficam definidos os estados em que poderia estar um turno e as operações
 a realizar para transitar de um estado a outro.
 
+![Diagrama de Estados Turno][estados_posto]
+
+[estados_posto]: https://raw.githubusercontent.com/sebasgoldberg/filav/master/docs/estados-turno.png "Diagrama de Estados Turno"
 
 ### Frontend
 
