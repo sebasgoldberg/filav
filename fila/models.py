@@ -115,7 +115,7 @@ class Local(models.Model):
 
 
 class Fila(models.Model):
-    
+
     local = models.ForeignKey(
         Local,
         verbose_name=_('Local'),
@@ -349,3 +349,33 @@ class Posto(models.Model):
         self.estado = Posto.INATIVO
         self.funcionario = None
         self.save()
+
+import hashlib
+import time
+
+def gerar_codigo_qr():
+    h = hashlib.sha1()
+    h.update(str(time.time()).encode('utf-8'))
+    return h.hexdigest()
+
+class QRCode(models.Model):
+
+    user = models.OneToOneField(
+        User,
+        verbose_name=_('Usuario'),
+        on_delete=models.CASCADE,
+    )
+
+    qrcode = models.CharField(
+        max_length=100,
+        verbose_name=_('Codigo QR'),
+        default = gerar_codigo_qr
+    )
+
+    local = models.ForeignKey(
+        Local,
+        verbose_name=_('Local'),
+        on_delete=models.CASCADE,
+        null=True
+    )
+

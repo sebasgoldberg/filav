@@ -12,15 +12,10 @@ class WSUsuario:
         self.wsclient = WSClient()
         self.wsclient.force_login(usuario)
         self.wsclient.send_and_consume('websocket.connect', path=path)
+        self.path = path
     
     def receive(self, *args, **kwargs):
         return self.wsclient.receive(*args, **kwargs)
-
-
-class WSFuncionario(WSUsuario):
-
-    def __init__(self, usuario, path='/posto/'):
-        super(WSFuncionario, self).__init__(usuario, path)
 
     def send_and_consume(self, message, data=None):
         self.wsclient.send_and_consume('websocket.receive',
@@ -28,14 +23,19 @@ class WSFuncionario(WSUsuario):
                 "message": message,
                 "data": data
             },
-            path='/posto/')
+            path=self.path)
 
+
+class WSPosto(WSUsuario):
+
+    def __init__(self, usuario, path='/posto/'):
+        super(WSPosto, self).__init__(usuario, path)
 
     def ocupar_posto(self, posto):
         self.send_and_consume('OCUPAR_POSTO', {'posto': posto.pk})
 
     def chamar_seguinte(self):
-        self.send_and_consume('CHAMR_SEGUINTE')
+        self.send_and_consume('CHAMAR_SEGUINTE')
 
     def cancelar_chamado(self):
         self.send_and_consume('CANCELAR_CHAMADO')
@@ -53,33 +53,93 @@ class WSFuncionario(WSUsuario):
         self.send_and_consume('INDICAR_AUSENCIA')
 
 
-class WSCliente(WSUsuario):
+class WSFila(WSUsuario):
 
     def __init__(self, usuario, path='/fila/'):
-        super(WSCliente, self).__init__(usuario, path)
+        super(WSFila, self).__init__(usuario, path)
 
-    def entrar_na_fila(self, fila):
-        self.wsclient.send_and_consume('websocket.receive',
-            text={
-                'message': 'ENTRAR_NA_FILA',
-                'data': {
-                    'fila': fila.pk
-                },
-            },
-            path='/fila/')
+    def enviar_filas(self, qrcode, local):
+        self.send_and_consume('ENVIAR_FILAS', {'qrcode': qrcode, 'local': local.pk})
+
+    def entrar_na_fila(self, fila, qrcode=None):
+        _qrcode = qrcode
+        if _qrcode is None:
+            qrcode, _ = QRCode.objects.get_or_create(user=self.user)
+            qrcode.local = fila.local
+            qrcode.save()
+            _qrcode = qrcode.qrcode
+
+        self.send_and_consume('ENTRAR_NA_FILA', {'fila': fila.pk, 'qrcode': _qrcode})
         return Turno.objects.get(cliente=self.user,
             fila=fila,
             estado__in=[Turno.CLIENTE_CHAMADO, Turno.NA_FILA])
 
     def sair_da_fila(self, turno):
-        self.wsclient.send_and_consume('websocket.receive',
-            text={
-                "message": "SAIR_DA_FILA",
-                "data": {
-                    'turno': turno.pk
-                },
-            },
-            path='/fila/')
+        self.send_and_consume('SAIR_DA_FILA', {'turno': turno.pk})
+
+
+class SequenciaIngressoTestCase(ChannelTestCase):
+
+    def test_get_codigo_qr(self):
+
+        cliente1 = h.get_or_create_cliente('c1')
+        wsf1 = WSFila(cliente1)
+
+        qrcode = QRCode.objects.get(user=cliente1)
+        self.assertEqual(
+            wsf1.receive(),
+            {"message": "QR_CODE", "data": {"qrcode": qrcode.qrcode}}
+            )
+
+    def test_scann_e_enviar_filas(self):
+
+        cliente1 = h.get_or_create_cliente('c1')
+        scann1 = h.get_or_create_funcionario_scanner('s1')
+        h.get_or_create_posto(['l1', 'f1', 'p1'])
+        local1 = h.get_or_create_posto(['l1', 'f2', 'p2']).fila.local
+
+        wsf1 = WSFila(cliente1)
+        qrcode = wsf1.receive()['data']['qrcode']
+
+        wss1 = WSFila(scann1)
+        wss1.enviar_filas(qrcode, local1)
+
+        QRCode.objects.get(user=cliente1, qrcode=qrcode, local=local1)
+
+        filas = [model_to_dict(f) for f in local1.filas.all()]
+        self.assertEqual(
+            wsf1.receive(),
+            {   
+                "message": "FILAS_DISPONIBLES",
+                "data": {"qrcode": qrcode, 'filas': filas}
+            })
+
+    def test_entrar_na_fila(self):
+
+        cliente1 = h.get_or_create_cliente('c1')
+        scann1 = h.get_or_create_funcionario_scanner('s1')
+        h.get_or_create_posto(['l1', 'f1', 'p1'])
+        local1 = h.get_or_create_posto(['l1', 'f2', 'p2']).fila.local
+
+        wsf1 = WSFila(cliente1)
+        qrcode = wsf1.receive()['data']['qrcode']
+
+        wss1 = WSFila(scann1)
+        wss1.enviar_filas(qrcode, local1)
+
+
+        filas = [model_to_dict(f) for f in local1.filas.all()]
+        data = wsf1.receive()['data']
+        
+        fila = Fila.objects.get(pk=data['filas'][0]['id'])
+        turno = wsf1.entrar_na_fila(fila,data['qrcode'])
+
+        self.assertEqual(
+            wsf1.receive(),
+            {   
+                "message": "ENTROU_NA_FILA",
+                "data": {'turno': model_to_dict(turno)}
+            })
 
 
 class EstadosPostoTestCase(ChannelTestCase):
@@ -96,8 +156,8 @@ class EstadosPostoTestCase(ChannelTestCase):
         posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
         funcionario1 = h.get_or_create_funcionario('f1')
 
-        wsf1 = WSFuncionario(funcionario1)
-        wsf1.ocupar_posto(posto1)
+        wsp1 = WSPosto(funcionario1)
+        wsp1.ocupar_posto(posto1)
 
         posto1.refresh_from_db()
         self.assertEqual(posto1.estado, Posto.EM_PAUSA)
@@ -108,10 +168,10 @@ class EstadosPostoTestCase(ChannelTestCase):
         posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
         funcionario1 = h.get_or_create_funcionario('f1')
 
-        wsf1 = WSFuncionario(funcionario1)
-        wsf1.ocupar_posto(posto1)
+        wsp1 = WSPosto(funcionario1)
+        wsp1.ocupar_posto(posto1)
 
-        wsf1.desocupar_posto()
+        wsp1.desocupar_posto()
         posto1.refresh_from_db()
         self.assertEqual(posto1.estado, Posto.INATIVO)
         self.assertIsNone(posto1.funcionario)
@@ -121,25 +181,25 @@ class EstadosPostoTestCase(ChannelTestCase):
         posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
         funcionario1 = h.get_or_create_funcionario('f1')
 
-        wsf1 = WSFuncionario(funcionario1)
-        wsf1.ocupar_posto(posto1)
+        wsp1 = WSPosto(funcionario1)
+        wsp1.ocupar_posto(posto1)
 
-        wsf1.chamar_seguinte()
+        wsp1.chamar_seguinte()
         posto1.refresh_from_db()
         self.assertEqual(posto1.estado, Posto.ESPERANDO_CLIENTE)
-        self.assertIsNone(wsf1.receive())
+        self.assertIsNone(wsp1.receive())
 
     def test_em_pausa_apos_cancelar_chamado(self):
 
         posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
         funcionario1 = h.get_or_create_funcionario('f1')
 
-        wsf1 = WSFuncionario(funcionario1)
-        wsf1.ocupar_posto(posto1)
+        wsp1 = WSPosto(funcionario1)
+        wsp1.ocupar_posto(posto1)
 
-        wsf1.chamar_seguinte()
+        wsp1.chamar_seguinte()
 
-        wsf1.cancelar_chamado()
+        wsp1.cancelar_chamado()
 
         posto1.refresh_from_db()
         self.assertEqual(posto1.estado, Posto.EM_PAUSA)
@@ -151,22 +211,22 @@ class EstadosPostoTestCase(ChannelTestCase):
         funcionario1 = h.get_or_create_funcionario('f1')
         cliente1 = h.get_or_create_cliente('c1')
 
-        wsf1 = WSFuncionario(funcionario1)
-        wsc1 = WSCliente(cliente1)
+        wsp1 = WSPosto(funcionario1)
+        wsf1 = WSFila(cliente1)
 
-        wsf1.ocupar_posto(posto1)
+        wsp1.ocupar_posto(posto1)
 
-        wsf1.chamar_seguinte()
+        wsp1.chamar_seguinte()
 
         posto1.refresh_from_db()
         self.assertEqual(posto1.estado, Posto.ESPERANDO_CLIENTE)
 
-        turno1 = wsc1.entrar_na_fila(posto1.fila)
+        turno1 = wsf1.entrar_na_fila(posto1.fila)
 
         posto1.refresh_from_db()
         self.assertEqual(posto1.estado, Posto.CLIENTE_CHAMADO)
         self.assertEqual(posto1.turno_em_atencao.pk, turno1.pk)
-        self.assertEqual(wsf1.receive()['message'], 'CLIENTE_CHAMADO')
+        self.assertEqual(wsp1.receive()['message'], 'CLIENTE_CHAMADO')
 
 
     def test_cliente_chamado_imediatamente(self):
@@ -175,38 +235,38 @@ class EstadosPostoTestCase(ChannelTestCase):
         funcionario1 = h.get_or_create_funcionario('f1')
         cliente1 = h.get_or_create_cliente('c1')
 
-        wsf1 = WSFuncionario(funcionario1)
-        wsc1 = WSCliente(cliente1)
+        wsp1 = WSPosto(funcionario1)
+        wsf1 = WSFila(cliente1)
 
-        turno1 = wsc1.entrar_na_fila(posto1.fila)
+        turno1 = wsf1.entrar_na_fila(posto1.fila)
 
-        wsf1.ocupar_posto(posto1)
+        wsp1.ocupar_posto(posto1)
 
-        wsf1.chamar_seguinte()
+        wsp1.chamar_seguinte()
 
         posto1.refresh_from_db()
         self.assertEqual(posto1.estado, Posto.CLIENTE_CHAMADO)
         self.assertEqual(posto1.turno_em_atencao.pk, turno1.pk)
-        self.assertEqual(wsf1.receive()['message'], 'CLIENTE_CHAMADO')
+        self.assertEqual(wsp1.receive()['message'], 'CLIENTE_CHAMADO')
 
     def test_atendendo(self):
         posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
         funcionario1 = h.get_or_create_funcionario('f1')
         cliente1 = h.get_or_create_cliente('c1')
 
-        wsf1 = WSFuncionario(funcionario1)
-        wsc1 = WSCliente(cliente1)
+        wsp1 = WSPosto(funcionario1)
+        wsf1 = WSFila(cliente1)
 
-        turno1 = wsc1.entrar_na_fila(posto1.fila)
+        turno1 = wsf1.entrar_na_fila(posto1.fila)
 
-        wsf1.ocupar_posto(posto1)
+        wsp1.ocupar_posto(posto1)
 
-        wsf1.chamar_seguinte()
+        wsp1.chamar_seguinte()
 
         posto1.refresh_from_db()
-        self.assertEqual(wsf1.receive()['message'], 'CLIENTE_CHAMADO')
+        self.assertEqual(wsp1.receive()['message'], 'CLIENTE_CHAMADO')
 
-        wsf1.atender()
+        wsp1.atender()
         posto1.refresh_from_db()
         self.assertEqual(posto1.estado, Posto.ATENDENDO)
         self.assertEqual(posto1.turno_em_atencao.pk, turno1.pk)
@@ -217,19 +277,19 @@ class EstadosPostoTestCase(ChannelTestCase):
         funcionario1 = h.get_or_create_funcionario('f1')
         cliente1 = h.get_or_create_cliente('c1')
 
-        wsf1 = WSFuncionario(funcionario1)
-        wsc1 = WSCliente(cliente1)
+        wsp1 = WSPosto(funcionario1)
+        wsf1 = WSFila(cliente1)
 
-        turno1 = wsc1.entrar_na_fila(posto1.fila)
+        turno1 = wsf1.entrar_na_fila(posto1.fila)
 
-        wsf1.ocupar_posto(posto1)
+        wsp1.ocupar_posto(posto1)
 
-        wsf1.chamar_seguinte()
+        wsp1.chamar_seguinte()
 
         posto1.refresh_from_db()
-        self.assertEqual(wsf1.receive()['message'], 'CLIENTE_CHAMADO')
+        self.assertEqual(wsp1.receive()['message'], 'CLIENTE_CHAMADO')
 
-        wsf1.indicar_ausencia()
+        wsp1.indicar_ausencia()
 
         posto1.refresh_from_db()
         self.assertEqual(posto1.estado, Posto.EM_PAUSA)
@@ -242,21 +302,21 @@ class EstadosPostoTestCase(ChannelTestCase):
         funcionario1 = h.get_or_create_funcionario('f1')
         cliente1 = h.get_or_create_cliente('c1')
 
-        wsf1 = WSFuncionario(funcionario1)
-        wsc1 = WSCliente(cliente1)
+        wsp1 = WSPosto(funcionario1)
+        wsf1 = WSFila(cliente1)
 
-        turno1 = wsc1.entrar_na_fila(posto1.fila)
+        turno1 = wsf1.entrar_na_fila(posto1.fila)
 
-        wsf1.ocupar_posto(posto1)
+        wsp1.ocupar_posto(posto1)
 
-        wsf1.chamar_seguinte()
+        wsp1.chamar_seguinte()
 
         posto1.refresh_from_db()
-        self.assertEqual(wsf1.receive()['message'], 'CLIENTE_CHAMADO')
+        self.assertEqual(wsp1.receive()['message'], 'CLIENTE_CHAMADO')
 
-        wsf1.atender()
+        wsp1.atender()
 
-        wsf1.finalizar_atencao()
+        wsp1.finalizar_atencao()
 
         posto1.refresh_from_db()
         self.assertEqual(posto1.estado, Posto.EM_PAUSA)
@@ -271,9 +331,9 @@ class EstadosTurnoTestCase(ChannelTestCase):
         posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
         cliente1 = h.get_or_create_cliente('c1')
 
-        wsc1 = WSCliente(cliente1)
+        wsf1 = WSFila(cliente1)
 
-        turno1 = wsc1.entrar_na_fila(posto1.fila)
+        turno1 = wsf1.entrar_na_fila(posto1.fila)
 
         turno1.refresh_from_db()
         self.assertEqual(turno1.estado, Turno.NA_FILA)
@@ -283,11 +343,11 @@ class EstadosTurnoTestCase(ChannelTestCase):
         posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
         cliente1 = h.get_or_create_cliente('c1')
 
-        wsc1 = WSCliente(cliente1)
+        wsf1 = WSFila(cliente1)
 
-        turno1 = wsc1.entrar_na_fila(posto1.fila)
+        turno1 = wsf1.entrar_na_fila(posto1.fila)
 
-        wsc1.sair_da_fila(turno1)
+        wsf1.sair_da_fila(turno1)
 
         turno1.refresh_from_db()
         self.assertEqual(turno1.estado, Turno.CANCELADO)
@@ -298,14 +358,14 @@ class EstadosTurnoTestCase(ChannelTestCase):
         funcionario1 = h.get_or_create_funcionario('f1')
         cliente1 = h.get_or_create_cliente('c1')
 
-        wsf1 = WSFuncionario(funcionario1)
-        wsc1 = WSCliente(cliente1)
+        wsp1 = WSPosto(funcionario1)
+        wsf1 = WSFila(cliente1)
 
-        wsf1.ocupar_posto(posto1)
+        wsp1.ocupar_posto(posto1)
 
-        wsf1.chamar_seguinte()
+        wsp1.chamar_seguinte()
 
-        turno1 = wsc1.entrar_na_fila(posto1.fila)
+        turno1 = wsf1.entrar_na_fila(posto1.fila)
 
         turno1.refresh_from_db()
         self.assertEqual(turno1.estado, Turno.CLIENTE_CHAMADO)
@@ -316,16 +376,16 @@ class EstadosTurnoTestCase(ChannelTestCase):
         funcionario1 = h.get_or_create_funcionario('f1')
         cliente1 = h.get_or_create_cliente('c1')
 
-        wsf1 = WSFuncionario(funcionario1)
-        wsc1 = WSCliente(cliente1)
+        wsp1 = WSPosto(funcionario1)
+        wsf1 = WSFila(cliente1)
 
-        wsf1.ocupar_posto(posto1)
+        wsp1.ocupar_posto(posto1)
 
-        wsf1.chamar_seguinte()
+        wsp1.chamar_seguinte()
 
-        turno1 = wsc1.entrar_na_fila(posto1.fila)
+        turno1 = wsf1.entrar_na_fila(posto1.fila)
 
-        wsf1.atender()
+        wsp1.atender()
 
         turno1.refresh_from_db()
         self.assertEqual(turno1.estado, Turno.NO_ATENDIMENTO)
@@ -336,17 +396,17 @@ class EstadosTurnoTestCase(ChannelTestCase):
         funcionario1 = h.get_or_create_funcionario('f1')
         cliente1 = h.get_or_create_cliente('c1')
 
-        wsf1 = WSFuncionario(funcionario1)
-        wsc1 = WSCliente(cliente1)
+        wsp1 = WSPosto(funcionario1)
+        wsf1 = WSFila(cliente1)
 
-        wsf1.ocupar_posto(posto1)
+        wsp1.ocupar_posto(posto1)
 
-        wsf1.chamar_seguinte()
+        wsp1.chamar_seguinte()
 
-        turno1 = wsc1.entrar_na_fila(posto1.fila)
+        turno1 = wsf1.entrar_na_fila(posto1.fila)
 
-        wsf1.atender()
-        wsf1.finalizar_atencao()
+        wsp1.atender()
+        wsp1.finalizar_atencao()
 
         turno1.refresh_from_db()
         self.assertEqual(turno1.estado, Turno.ATENDIDO)
@@ -357,122 +417,17 @@ class EstadosTurnoTestCase(ChannelTestCase):
         funcionario1 = h.get_or_create_funcionario('f1')
         cliente1 = h.get_or_create_cliente('c1')
 
-        wsf1 = WSFuncionario(funcionario1)
-        wsc1 = WSCliente(cliente1)
+        wsp1 = WSPosto(funcionario1)
+        wsf1 = WSFila(cliente1)
 
-        wsf1.ocupar_posto(posto1)
+        wsp1.ocupar_posto(posto1)
 
-        wsf1.chamar_seguinte()
+        wsp1.chamar_seguinte()
 
-        turno1 = wsc1.entrar_na_fila(posto1.fila)
+        turno1 = wsf1.entrar_na_fila(posto1.fila)
 
-        wsf1.indicar_ausencia()
+        wsp1.indicar_ausencia()
 
         turno1.refresh_from_db()
         self.assertEqual(turno1.estado, Turno.AUSENTE)
 
-class Otra:
-
-    def test_estados_atendido(self):
-
-        posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
-
-        cliente1 = h.get_or_create_cliente('c1')
-
-        wsc1 = WSCliente(cliente1)
-        self.assertEqual(
-            wsc1.receive(),
-            {"message": "QR_CODE", "data": {"qrcode": "c1"}}
-            )
-
-        turno1 = wsc1.entrar_na_fila(posto1.fila)
-        self.assertEqual(
-            wsc1.receive(),
-            {"message": "ENTROU_NA_FILA", "turno": model_to_dict(turno1)}
-            )
-
-        turno1.refresh_from_db()
-        self.assertEqual(turno1.estado, Turno.NA_FILA)
-        turno1.get_grupo().send({'text':'ok'})
-        self.assertEqual(wsc1.receive(json=False), 'ok')
-        turno1.fila.get_grupo().send({'text':'ok'})
-        self.assertEqual(wsc1.receive(json=False), 'ok')
-
-        funcionario1 = h.get_or_create_funcionario('f1')
-        wsf1 = WSFuncionario(funcionario1)
-        wsf1.ocupar_posto(posto1)
-
-        wsf1.chamar_seguinte()
-        turno1.refresh_from_db()
-        self.assertEqual(turno1.estado, Turno.NO_ATENDIMENTO)
-        self.assertEqual(wsc1.receive()['message'], 'IR_NO_POSTO')
-        turno1.get_grupo().send({'text':'ok'})
-        self.assertEqual(wsc1.receive(json=False), 'ok')
-        turno1.fila.get_grupo().send({'text':'ok'})
-        self.assertIsNone(wsc1.receive(json=False))
-
-        wsf1.finalizar_atencao()
-        turno1.refresh_from_db()
-        self.assertEqual(turno1.estado, Turno.ATENDIDO)
-        turno1.get_grupo().send({'text':'ok'})
-        self.assertIsNone(wsc1.receive(json=False))
-
-        wsf1.desocupar_posto()
-
-    def test_estados_cancelado(self):
-
-        posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
-
-        cliente1 = h.get_or_create_cliente('c1')
-
-        wsc1 = WSCliente(cliente1)
-        wsc1.receive()
-
-        turno1 = wsc1.entrar_na_fila(posto1.fila)
-        turno1.refresh_from_db()
-        self.assertEqual(turno1.estado, Turno.NA_FILA)
-        wsc1.receive()
-
-        wsc1.sair_da_fila(turno1)
-        turno1.refresh_from_db()
-        self.assertEqual(turno1.estado, Turno.CANCELADO)
-
-        turno1.get_grupo().send({'text':'ok'})
-        self.assertIsNone(wsc1.receive(json=False))
-        turno1.fila.get_grupo().send({'text':'ok'})
-        self.assertIsNone(wsc1.receive(json=False))
-
-    def test_estados_ausente(self):
-
-        posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
-
-        cliente1 = h.get_or_create_cliente('c1')
-
-        wsc1 = WSCliente(cliente1)
-        self.assertEqual(
-            wsc1.receive(),
-            {"message": "QR_CODE", "data": {"qrcode": "c1"}}
-            )
-
-        turno1 = wsc1.entrar_na_fila(posto1.fila)
-        self.assertEqual(
-            wsc1.receive(),
-            {"message": "ENTROU_NA_FILA", "turno": model_to_dict(turno1)}
-            )
-
-        funcionario1 = h.get_or_create_funcionario('f1')
-        wsf1 = WSFuncionario(funcionario1)
-        wsf1.ocupar_posto(posto1)
-
-        wsf1.chamar_seguinte()
-        self.assertEqual(wsc1.receive()['message'], 'IR_NO_POSTO')
-
-        wsf1.indicar_ausencia()
-        turno1.refresh_from_db()
-        self.assertEqual(turno1.estado, Turno.AUSENTE)
-        turno1.get_grupo().send({'text':'ok'})
-        self.assertIsNone(wsc1.receive(json=False))
-
-        wsf1.desocupar_posto()
-
- 
