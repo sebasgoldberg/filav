@@ -18,6 +18,7 @@ from django.contrib import admin
 
 from fila.views import *
 from rest_framework import routers
+from django.contrib.auth import views as auth_views
 
 router = routers.DefaultRouter()
 router.register(r'filas', FilaViewSet)
@@ -26,6 +27,8 @@ router.register(r'cliente/turnos/ativos', ClienteTurnosAtivosViewSet)
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
+    url(r'^login/$', auth_views.login, name='login'),
+    url(r'^oauth/', include('social_django.urls', namespace='social')),
     url(r'^api/', include(router.urls)),
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework'))
 ]
