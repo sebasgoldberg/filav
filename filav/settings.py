@@ -176,3 +176,4 @@ SOCIAL_AUTH_FACEBOOK_KEY = os.getenv('SOCIAL_AUTH_FACEBOOK_KEY')
 SOCIAL_AUTH_FACEBOOK_SECRET = os.getenv('SOCIAL_AUTH_FACEBOOK_SECRET')
 
 LOGIN_REDIRECT_URL = 'https://iamsoft.org:8443/static/fila/cliente/webapp/index.html'
+
