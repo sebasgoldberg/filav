@@ -118,29 +118,6 @@ class FilaConsumer(JsonWebsocketConsumer):
         t = Turno.objects.get(pk=content['turno'], cliente=c)
         t.cancelar()
 
-    def enviar_filas(self, data):
-        """
-        Utilizado pelo scanner. Restringe o uso do codigo QR para o
-        local onde pertence o scanner e envia as filas possiveis
-        para o usuario.
-        self.message.user é o scanner e deve ter as permissões necessarias.
-        """
-        # @todo Adicionar a validação de permissões.
-        qrcode = QRCode.objects.get(qrcode=data['qrcode'])
-        cliente = Cliente.objects.get(username=qrcode.user.username)
-        local = Local.objects.get(pk=data['local'])
-        qrcode.local = local
-        qrcode.save()
-        filas = [ model_to_dict(f) for f in local.filas.all() ]
-        cliente.get_grupo().send({
-            'text': json.dumps({
-                'message': 'FILAS_DISPONIBLES',
-                'data':{
-                    'filas': filas,
-                    'qrcode': qrcode.qrcode,
-                },
-            })})
-
     def receive(self, content, **kwargs):
         if self.message.user.is_authenticated:
             if content['message'] == 'ENTRAR_NA_FILA':
@@ -149,6 +126,53 @@ class FilaConsumer(JsonWebsocketConsumer):
                 self.enviar_filas(content['data'])
             elif content['message'] == 'SAIR_DA_FILA':
                 self.sair_da_fila(content['data'])
+
+    def disconnect(self, message, **kwargs):
+        if self.message.user.is_authenticated:
+            PersistedGroup.remove_channel_from_groups(self.message.reply_channel)
+
+
+class ScannerConsumer(JsonWebsocketConsumer):
+
+    # Set to True if you want it, else leave it out
+    strict_ordering = False
+    http_user = True
+
+    def connection_groups(self, **kwargs):
+        return []
+
+    def connect(self, message, **kwargs):
+        if self.message.user.is_authenticated:
+            message.reply_channel.send({"accept": True})
+
+    def scan(self, data):
+        """
+        Utilizado pelo scanner. Restringe o uso do codigo QR para o
+        local onde pertence o scanner e envia as filas possiveis
+        para o usuario.
+        self.message.user é o scanner e deve ter as permissões necessarias.
+        """
+        if self.message.user.is_authenticated:
+            # @todo Adicionar a validação de permissões.
+            qrcode = QRCode.objects.get(qrcode=data['qrcode'])
+            cliente = Cliente.objects.get(username=qrcode.user.username)
+            local = Local.objects.get(pk=data['local'])
+            qrcode.local = local
+            qrcode.save()
+            filas = [ model_to_dict(f) for f in local.filas.all() ]
+            cliente.get_grupo().send({
+                'text': json.dumps({
+                    'message': 'FILAS_DISPONIBLES',
+                    'data':{
+                        'filas': filas,
+                        'qrcode': qrcode.qrcode,
+                    },
+                })})
+
+    def receive(self, content, **kwargs):
+        if self.message.user.is_authenticated:
+            if content['message'] == 'SCAN':
+                self.scan(content['data'])
 
     def disconnect(self, message, **kwargs):
         if self.message.user.is_authenticated:

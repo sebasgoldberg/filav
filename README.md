@@ -32,7 +32,7 @@ a realizar para transitar de um estado a outro.
 
 [estados_turno]: https://raw.githubusercontent.com/sebasgoldberg/filav/master/docs/estados-turnos.png "Diagrama de Estados Turno"
 
-A continuação fica definida a sequencia que valida que o cliente esteja precensialmente na loja
+A continuação fica definida a sequencia que valida que o cliente esteja presencialmente na loja
 sem necessidade de utilizar serviços de localização.
 Basicamente a ideia é gerar um codigo QR unico no dispositivo do cliente, e escanear o mesmo em
 algum scanner da loja.
@@ -51,7 +51,12 @@ Nesta app o cliente poderá realizar as seguintes operações:
 - Gerar codigo QR.
 - Entrar na fila.
 - Sair da fila.
-- Receber notificações.
+- Visualização
+    - do tempo de espera uma vez que entrou na fila.
+    - da posição que tem na fila.
+- Receber notificações:
+    - Mudança de estados do turno.
+    - Modificação do tempo de espera e/ou posição.
 
 #### Scanner
 

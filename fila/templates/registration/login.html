@@ -7,5 +7,5 @@
   </form>
   <br>
   <p><strong>-- OR --</strong></p>
-  <a href="{% url 'social:begin' 'facebook' %}">Login with Facebook</a>
+  <a href="{% url 'social:begin' 'facebook' %}{% if request.GET.next %}?next={{request.GET.next}}{% endif %}">Login with Facebook</a>
 {% endblock %}

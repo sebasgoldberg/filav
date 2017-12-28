@@ -58,9 +58,6 @@ class WSFila(WSUsuario):
     def __init__(self, usuario, path='/fila/'):
         super(WSFila, self).__init__(usuario, path)
 
-    def enviar_filas(self, qrcode, local):
-        self.send_and_consume('ENVIAR_FILAS', {'qrcode': qrcode, 'local': local.pk})
-
     def entrar_na_fila(self, fila, qrcode=None):
         _qrcode = qrcode
         if _qrcode is None:
@@ -76,6 +73,15 @@ class WSFila(WSUsuario):
 
     def sair_da_fila(self, turno):
         self.send_and_consume('SAIR_DA_FILA', {'turno': turno.pk})
+
+
+class WSScanner(WSUsuario):
+
+    def __init__(self, usuario, path='/scanner/'):
+        super(WSScanner, self).__init__(usuario, path)
+
+    def scan(self, qrcode, local):
+        self.send_and_consume('SCAN', {'qrcode': qrcode, 'local': local.pk})
 
 
 class SequenciaIngressoTestCase(ChannelTestCase):
@@ -101,8 +107,8 @@ class SequenciaIngressoTestCase(ChannelTestCase):
         wsf1 = WSFila(cliente1)
         qrcode = wsf1.receive()['data']['qrcode']
 
-        wss1 = WSFila(scann1)
-        wss1.enviar_filas(qrcode, local1)
+        wss1 = WSScanner(scann1)
+        wss1.scan(qrcode, local1)
 
         QRCode.objects.get(user=cliente1, qrcode=qrcode, local=local1)
 
@@ -124,8 +130,8 @@ class SequenciaIngressoTestCase(ChannelTestCase):
         wsf1 = WSFila(cliente1)
         qrcode = wsf1.receive()['data']['qrcode']
 
-        wss1 = WSFila(scann1)
-        wss1.enviar_filas(qrcode, local1)
+        wss1 = WSScanner(scann1)
+        wss1.scan(qrcode, local1)
 
 
         filas = [model_to_dict(f) for f in local1.filas.all()]
