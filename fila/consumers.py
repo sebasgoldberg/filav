@@ -108,7 +108,7 @@ class FilaConsumer(JsonWebsocketConsumer):
         f.get_grupo().add(self.message.reply_channel)
         c.get_grupo().send({
             'text': json.dumps({
-                'message': 'ENTROU_NA_FILA',
+                'message': 'NA_FILA',
                 'data': { 'turno': model_to_dict(t), }
             })})
         qrcode.delete()

@@ -137,7 +137,7 @@ class SequenciaIngressoTestCase(ChannelTestCase):
         self.assertEqual(
             wsf1.receive(),
             {   
-                "message": "ENTROU_NA_FILA",
+                "message": "NA_FILA",
                 "data": {'turno': model_to_dict(turno)}
             })
 

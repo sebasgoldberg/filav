@@ -30,7 +30,16 @@ a realizar para transitar de um estado a outro.
 
 ![Diagrama de Estados Turno][estados_turno]
 
-[estados_turno]: https://raw.githubusercontent.com/sebasgoldberg/filav/master/docs/estados-turno.png "Diagrama de Estados Turno"
+[estados_turno]: https://raw.githubusercontent.com/sebasgoldberg/filav/master/docs/estados-turnos.png "Diagrama de Estados Turno"
+
+A continuação fica definida a sequencia que valida que o cliente esteja precensialmente na loja
+sem necessidade de utilizar serviços de localização.
+Basicamente a ideia é gerar um codigo QR unico no dispositivo do cliente, e escanear o mesmo em
+algum scanner da loja.
+
+![Diagrama de Sequencia Ingresso][sequencia_ingresso]
+
+[sequencia_ingresso]: https://raw.githubusercontent.com/sebasgoldberg/filav/master/docs/sequencia-ingresso.png "Diagrama de Sequencia Ingresso"
 
 ### Frontend
 
