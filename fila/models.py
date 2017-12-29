@@ -379,3 +379,9 @@ class QRCode(models.Model):
         null=True
     )
 
+    def save(self, *args, **kwargs):
+        if self.pk is None:
+            self.qrcode = '%s@%s' % (gerar_codigo_qr(), self.user.username)
+        return super(QRCode, self).save(*args, **kwargs)
+
+

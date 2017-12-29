@@ -19,3 +19,15 @@ class ClienteTurnosAtivosViewSet(TurnoViewSet):
         qs = super(ClienteTurnosAtivosViewSet, self).get_queryset()
         qs = qs.filter(cliente=self.request.user)
         return qs
+
+from django.views.generic.base import TemplateView
+from django.contrib.auth.mixins import LoginRequiredMixin
+
+class ClienteView(LoginRequiredMixin, TemplateView):
+
+    template_name = "fila/cliente/index.html"
+
+
+class ScannerView(LoginRequiredMixin, TemplateView):
+
+    template_name = "fila/scanner/index.html"

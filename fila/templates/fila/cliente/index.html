@@ -1,0 +1,47 @@
+{% load static %}
+<!DOCTYPE HTML>
+<html>
+
+	<head>
+		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+		<meta charset="UTF-8">
+
+		<title>Fila Virtual</title>
+
+		<script src="{% static 'channels/js/websocketbridge.js' %}"> </script>
+
+		<script id="sap-ui-bootstrap"
+			src="https://openui5.hana.ondemand.com/resources/sap-ui-core.js"
+			data-sap-ui-libs="sap.m"
+			data-sap-ui-theme="sap_belize"
+			data-sap-ui-compatVersion="edge"
+			data-sap-ui-preload="async"
+			data-sap-ui-resourceroots='{
+				"iamsoft.filav.cliente": "{% static 'fila/cliente/webapp/' %}",
+				"static": "{% static '' %}",
+                "com.penninkhof.controls": "{% static 'fila/cliente/webapp/resources/openui5-qrcode/control/' %}",
+                "iamsoft.socket": "{% static 'fila/cliente/webapp/resources/socket/' %}"
+				}'>
+		</script>
+
+		<link rel="stylesheet" type="text/css" href="css/style.css">
+
+		<script>
+			sap.ui.getCore().attachInit(function() {
+				new sap.m.Shell({
+					app: new sap.ui.core.ComponentContainer({
+						height : "100%",
+						name : "iamsoft.filav.cliente",
+						settings : {
+							id : "basicTemplate"
+						}
+					})
+				}).placeAt("content");
+			});
+		</script>
+	</head>
+
+	<body class="sapUiBody" id="content">
+	</body>
+
+</html>
