@@ -73,7 +73,6 @@ class PostoConsumer(JsonWebsocketConsumer):
             elif content['message'] == 'DESOCUPAR_POSTO':
                 self.desocupar_posto(content['data'])
 
-
 class FilaConsumer(JsonWebsocketConsumer):
 
     # Set to True if you want it, else leave it out
@@ -95,10 +94,21 @@ class FilaConsumer(JsonWebsocketConsumer):
         cliente = Cliente.get_from_user(self.message.user)
         try:
             turno = cliente.get_turno_ativo()
+            turno_dict = model_to_dict(turno)
+            turno_dict['fila'] = model_to_dict(turno.fila)
+            turno_dict['fila']['local'] = model_to_dict(turno.fila.local)
+            turno_dict['posicao'] = turno.get_posicao()
+            turno_dict['texto_estado'] = turno.texto_estado()
+            turno_dict['creation_date'] = str(turno.creation_date)
+            try:
+                turno_dict['posto'] = model_to_dict(turno.posto)
+            except Posto.DoesNotExist:
+                pass
+
             cliente.get_grupo().send({
                 'text': json.dumps({
                     'message': 'TURNO_ATIVO',
-                    'data': { 'turno': model_to_dict(turno), }
+                    'data': { 'turno': turno_dict, }
                 })})
         except Turno.DoesNotExist:
             self.quero_entrar_na_fila(content)
@@ -124,11 +134,7 @@ class FilaConsumer(JsonWebsocketConsumer):
         t = c.entrar_na_fila(f)
         t.get_grupo().add(self.message.reply_channel)
         f.get_grupo().add(self.message.reply_channel)
-        c.get_grupo().send({
-            'text': json.dumps({
-                'message': 'NA_FILA',
-                'data': { 'turno': model_to_dict(t), }
-            })})
+        self.get_estado()
         qrcode.delete()
 
     def sair_da_fila(self, content):

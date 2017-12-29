@@ -1,5 +1,5 @@
 from django.db import models
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext_lazy as _, ugettext as ugt
 from django.contrib.auth.models import User
 
 from channels import Channel, Group
@@ -167,15 +167,22 @@ class Fila(models.Model):
 
         fg.send({'message': 'FILA_AVANCOU'})
 
+
 class TurnoAtivoManager(models.Manager):
 
     def get_queryset(self):
         return super(TurnoAtivoManager, self).get_queryset().filter(estado__in=Turno.ESTADOS_ATIVOS)
 
+class TurnoNaFilaManager(models.Manager):
+
+    def get_queryset(self):
+        return super(TurnoNaFilaManager, self).get_queryset().filter(estado=Turno.NA_FILA)
+
 class Turno(models.Model):
 
     objects = models.Manager()
     ativos = TurnoAtivoManager()
+    na_fila = TurnoNaFilaManager()
 
     INICIAL = 0
     NA_FILA = 1
@@ -192,14 +199,16 @@ class Turno(models.Model):
     ]
 
     ESTADOS = (
-        (INICIAL, _('Inicial')),
-        (NA_FILA, _('Na Fila')),
-        (CANCELADO, _('Cancelado')),
-        (NO_ATENDIMENTO, _('No Atendimento')),
-        (AUSENTE, _('Ausente')),
-        (ATENDIDO, _('Atendido')),
+        (INICIAL, ugt('Inicial')),
+        (NA_FILA, ugt('Na Fila')),
+        (CANCELADO, ugt('Cancelado')),
+        (CLIENTE_CHAMADO, ugt('Ir no posto')),
+        (NO_ATENDIMENTO, ugt('No Atendimento')),
+        (AUSENTE, ugt('Ausente')),
+        (ATENDIDO, ugt('Atendido')),
     )
 
+    ESTADOS_DICT = dict(ESTADOS)
 
     fila = models.ForeignKey(
         Fila,
@@ -247,6 +256,21 @@ class Turno(models.Model):
         tg.send({'message': 'NO_ATENDIMENTO'})
         tg.discard_all()
 
+    def get_posicao(self):
+        if self.estado in [Turno.CLIENTE_CHAMADO, Turno.NO_ATENDIMENTO]:
+            return 0
+        if self.estado != Turno.NA_FILA:
+            raise Exception('Para obter uma posição o turno deve deve ter estado na fila.')
+        i = 0
+        for x in Turno.na_fila.filter(fila=self.fila).order_by('creation_date'):
+            i = i + 1
+            if self.pk == x.pk:
+                break
+        return i   
+
+    def texto_estado(self):
+        return Turno.ESTADOS_DICT[self.estado]
+
 class Posto(models.Model):
 
     INATIVO = 0
@@ -284,7 +308,7 @@ class Posto(models.Model):
         editable=False
     )
 
-    turno_em_atencao = models.ForeignKey(
+    turno_em_atencao = models.OneToOneField(
         Turno,
         verbose_name=_('Turno em atencao'),
         on_delete=models.PROTECT,
