@@ -141,6 +141,7 @@ class FilaConsumer(JsonWebsocketConsumer):
         c = Cliente.get_from_user(self.message.user)
         t = Turno.objects.get(pk=content['turno'], cliente=c)
         t.cancelar()
+        self.get_estado()
 
     def receive(self, content, **kwargs):
         if self.message.user.is_authenticated:
