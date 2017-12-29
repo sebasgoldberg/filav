@@ -6,6 +6,6 @@
     <button type="submit">Login</button>
   </form>
   <br>
-  <p><strong>-- OR --</strong></p>
-  <a href="{% url 'social:begin' 'facebook' %}{% if request.GET.next %}?next={{request.GET.next}}{% endif %}">Login with Facebook</a>
+  <p><strong>-- OU --</strong></p>
+  <a href="{% url 'social:begin' 'facebook' %}{% if request.GET.next %}?next={{request.GET.next}}{% endif %}">Login com Facebook</a>
 {% endblock %}
