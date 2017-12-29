@@ -33,4 +33,4 @@ from django.contrib.auth.mixins import PermissionRequiredMixin
 class ScannerView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
 
     template_name = "fila/scanner/index.html"
-    permission_required = ('fila.acesso_ao_scanner',)
+    permission_required = ('fila.habilitar_scanner',)

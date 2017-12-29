@@ -142,7 +142,8 @@ class ScannerConsumer(JsonWebsocketConsumer):
         return []
 
     def connect(self, message, **kwargs):
-        if self.message.user.is_authenticated:
+        if ( self.message.user.is_authenticated and
+            self.message.user.has_perm('fila.habilitar_scanner') ):
             message.reply_channel.send({"accept": True})
 
     def scan(self, data):
@@ -152,29 +153,30 @@ class ScannerConsumer(JsonWebsocketConsumer):
         para o usuario.
         self.message.user é o scanner e deve ter as permissões necessarias.
         """
-        if self.message.user.is_authenticated:
-            # @todo Adicionar a validação de permissões.
-            qrcode = QRCode.objects.get(qrcode=data['qrcode'])
-            cliente = Cliente.objects.get(username=qrcode.user.username)
-            local = Local.objects.get(pk=data['local'])
-            qrcode.local = local
-            qrcode.save()
-            filas = [ model_to_dict(f) for f in local.filas.all() ]
-            cliente.get_grupo().send({
-                'text': json.dumps({
-                    'message': 'FILAS_DISPONIBLES',
-                    'data':{
-                        'filas': filas,
-                        'qrcode': qrcode.qrcode,
-                    },
-                })})
+        # @todo Adicionar a validação de permissões.
+        qrcode = QRCode.objects.get(qrcode=data['qrcode'])
+        cliente = Cliente.objects.get(username=qrcode.user.username)
+        local = Local.objects.get(pk=data['local'])
+        qrcode.local = local
+        qrcode.save()
+        filas = [ model_to_dict(f) for f in local.filas.all() ]
+        cliente.get_grupo().send({
+            'text': json.dumps({
+                'message': 'FILAS_DISPONIBLES',
+                'data':{
+                    'filas': filas,
+                    'qrcode': qrcode.qrcode,
+                },
+            })})
 
     def receive(self, content, **kwargs):
-        if self.message.user.is_authenticated:
+        if ( self.message.user.is_authenticated and
+            self.message.user.has_perm('fila.habilitar_scanner') ):
             if content['message'] == 'SCAN':
                 self.scan(content['data'])
 
     def disconnect(self, message, **kwargs):
-        if self.message.user.is_authenticated:
+        if ( self.message.user.is_authenticated and
+            self.message.user.has_perm('fila.habilitar_scanner') ):
             PersistedGroup.remove_channel_from_groups(self.message.reply_channel)
 

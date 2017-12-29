@@ -360,6 +360,11 @@ def gerar_codigo_qr():
 
 class QRCode(models.Model):
 
+    class Meta:
+        permissions = (
+            ('habilitar_scanner', 'Pode habilitar scanners de codigos QR para acessar a fila virtual.'),
+        )
+
     user = models.OneToOneField(
         User,
         verbose_name=_('Usuario'),
