@@ -1,8 +1,12 @@
 from django.contrib.auth.models import User
 from .models import *
+from django.contrib.auth.models import Permission
 
 def get_or_create_funcionario_scanner(username='s1'):
-    return get_or_create_funcionario(username)
+    f = get_or_create_funcionario(username)
+    p = Permission.objects.get(codename='habilitar_scanner')
+    f.user_permissions.add(p)
+    return f
 
 def get_or_create_funcionario(username='f1'):
     try:

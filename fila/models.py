@@ -99,6 +99,9 @@ class Cliente(User):
         fila.avancar()
         return turno
 
+    def get_turno_ativo(self):
+        return Turno.ativos.get(cliente=self)
+
     def get_grupo(self):
         return PersistedGroup('cliente-%s' % self.pk)
 
@@ -184,6 +187,7 @@ class Turno(models.Model):
 
     ESTADOS_ATIVOS = [
         NA_FILA,
+        CLIENTE_CHAMADO,
         NO_ATENDIMENTO,
     ]
 

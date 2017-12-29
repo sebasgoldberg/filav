@@ -85,19 +85,37 @@ class FilaConsumer(JsonWebsocketConsumer):
 
     def connect(self, message, **kwargs):
         if self.message.user.is_authenticated:
+            super(FilaConsumer, self).connect(message, **kwargs)
             c = Cliente.get_from_user(self.message.user)
             grupo_cliente = c.get_grupo()
             grupo_cliente.add(self.message.reply_channel)
-            super(FilaConsumer, self).connect(message, **kwargs)
-            qrcode, _ = QRCode.objects.get_or_create(user=c)
-            grupo_cliente.send({
+            self.get_estado()
+
+    def get_estado(self, content={}):
+        cliente = Cliente.get_from_user(self.message.user)
+        try:
+            turno = cliente.get_turno_ativo()
+            cliente.get_grupo().send({
                 'text': json.dumps({
-                    "message": "QR_CODE",
-                    "data":{
-                        "qrcode": qrcode.qrcode,
-                    }
-                })
+                    'message': 'TURNO_ATIVO',
+                    'data': { 'turno': model_to_dict(turno), }
+                })})
+        except Turno.DoesNotExist:
+            self.quero_entrar_na_fila(content)
+
+    def quero_entrar_na_fila(self, content={}):
+        c = Cliente.get_from_user(self.message.user)
+        grupo_cliente = c.get_grupo()
+        qrcode, _ = QRCode.objects.get_or_create(user=c)
+        grupo_cliente.send({
+            'text': json.dumps({
+                "message": "QR_CODE",
+                "data":{
+                    "qrcode": qrcode.qrcode,
+                }
             })
+        })
+
 
     def entrar_na_fila(self, content):
         c = Cliente.get_from_user(self.message.user)
@@ -122,10 +140,10 @@ class FilaConsumer(JsonWebsocketConsumer):
         if self.message.user.is_authenticated:
             if content['message'] == 'ENTRAR_NA_FILA':
                 self.entrar_na_fila(content['data'])
-            elif content['message'] == 'ENVIAR_FILAS':
-                self.enviar_filas(content['data'])
             elif content['message'] == 'SAIR_DA_FILA':
                 self.sair_da_fila(content['data'])
+            elif content['message'] == 'GET_ESTADO':
+                self.get_estado(content['data'])
 
     def disconnect(self, message, **kwargs):
         if self.message.user.is_authenticated:
@@ -144,7 +162,7 @@ class ScannerConsumer(JsonWebsocketConsumer):
     def connect(self, message, **kwargs):
         if ( self.message.user.is_authenticated and
             self.message.user.has_perm('fila.habilitar_scanner') ):
-            message.reply_channel.send({"accept": True})
+                super(ScannerConsumer, self).connect(message, **kwargs)
 
     def scan(self, data):
         """
