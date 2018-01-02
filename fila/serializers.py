@@ -7,6 +7,11 @@ class FilaSerializer(serializers.ModelSerializer):
         model = Fila
         fields = ('id', 'nome', )
 
+class LocalSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Local
+        fields = ('id', 'nome', )
+
 
 class TurnoSerializer(serializers.ModelSerializer):
     class Meta:

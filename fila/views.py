@@ -8,6 +8,10 @@ class FilaViewSet(viewsets.ModelViewSet):
     queryset = Fila.objects.all()
     serializer_class = FilaSerializer
 
+class LocalViewSet(viewsets.ModelViewSet):
+    queryset = Local.objects.all()
+    serializer_class = LocalSerializer
+
 
 class TurnoViewSet(viewsets.ModelViewSet):
     queryset = Turno.objects.all()

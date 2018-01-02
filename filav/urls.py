@@ -22,6 +22,7 @@ from django.contrib.auth import views as auth_views
 
 router = routers.DefaultRouter()
 router.register(r'filas', FilaViewSet)
+router.register(r'locais', LocalViewSet)
 router.register(r'turnos', TurnoViewSet)
 router.register(r'cliente/turnos/ativos', ClienteTurnosAtivosViewSet)
 
