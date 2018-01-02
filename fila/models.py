@@ -3,6 +3,7 @@ from django.utils.translation import ugettext_lazy as _, ugettext as ugt
 from django.contrib.auth.models import User
 
 from channels import Channel, Group
+from django.forms.models import model_to_dict
 
 class GroupChannels(models.Model):
 
@@ -270,6 +271,20 @@ class Turno(models.Model):
 
     def texto_estado(self):
         return Turno.ESTADOS_DICT[self.estado]
+
+    def to_dict(self):
+        turno_dict = model_to_dict(self)
+        turno_dict['fila'] = model_to_dict(self.fila)
+        turno_dict['fila']['local'] = model_to_dict(self.fila.local)
+        turno_dict['posicao'] = self.get_posicao()
+        turno_dict['texto_estado'] = self.texto_estado()
+        turno_dict['creation_date'] = str(self.creation_date)
+        try:
+            turno_dict['posto'] = model_to_dict(self.posto)
+        except Posto.DoesNotExist:
+            pass
+
+
 
 class Posto(models.Model):
 
