@@ -4,3 +4,6 @@
 [submodule "fila/static/fila/scanner"]
 	path = fila/static/fila/scanner
 	url = git@iamsoft.org:filav-scanner.git
+[submodule "fila/static/fila/posto"]
+	path = fila/static/fila/posto
+	url = git@iamsoft.org:filav-posto.git

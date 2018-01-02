@@ -30,6 +30,7 @@ urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^fila/cliente/', ClienteView.as_view(), name='cliente'),
     url(r'^fila/scanner/', ScannerView.as_view(), name='scanner'),
+    url(r'^fila/posto/', PostoView.as_view(), name='posto'),
     url(r'^accounts/login/$', auth_views.login, name='login'),
     url(r'^logout/$', auth_views.logout, {'next_page': 'login'}, name='logout'),
     url(r'^oauth/', include('social_django.urls', namespace='social')),
