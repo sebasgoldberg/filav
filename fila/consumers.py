@@ -18,44 +18,67 @@ class PostoConsumer(JsonWebsocketConsumer):
 
     def connect(self, message, **kwargs):
         if self.message.user.is_authenticated:
-            message.reply_channel.send({"accept": True})
+            super(PostoConsumer, self).connect(message, **kwargs)
+            self.funcionario = Funcionario.get_from_user(self.message.user)
+            self.funcionario.get_grupo().add(self.message.reply_channel)
+            self.get_estado()
 
     def disconnect(self, message, **kwargs):
         if self.message.user.is_authenticated:
             PersistedGroup.remove_channel_from_groups(self.message.reply_channel)
 
     def ocupar_posto(self, content):
-        f = Funcionario.get_from_user(self.message.user)
         p = Posto.objects.get(pk=content['posto'])
-        f.ocupar_posto(p)
         p.get_grupo().add(self.message.reply_channel)
+        self.funcionario.ocupar_posto(p)
 
     def chamar_seguinte(self, content):
-        f = Funcionario.get_from_user(self.message.user)
-        f.chamar_seguinte()
+        self.funcionario.chamar_seguinte()
 
     def cancelar_chamado(self, content):
-        f = Funcionario.get_from_user(self.message.user)
-        f.cancelar_chamado()
+        self.funcionario.cancelar_chamado()
 
     def finalizar_atencao(self, content):
-        f = Funcionario.get_from_user(self.message.user)
-        f.finalizar_atencao()
+        self.funcionario.finalizar_atencao()
 
     def indicar_ausencia(self, content):
-        f = Funcionario.get_from_user(self.message.user)
-        f.indicar_ausencia()
+        self.funcionario.indicar_ausencia()
 
     def atender(self, content):
-        f = Funcionario.get_from_user(self.message.user)
-        f.atender()
+        self.funcionario.atender()
 
     def desocupar_posto(self, content):
-        f = Funcionario.get_from_user(self.message.user)
-        f.desocupar_posto()
+        self.funcionario.desocupar_posto()
+        self.get_estado()
+
+    def get_estado(self):
+        try:
+            self.funcionario.posto.notificar()
+        except:
+            self.get_locais_disponiveis()
+
+    def get_locais_disponiveis(self):
+        locais = [ model_to_dict(l) for l in Local.objects.all() ]
+        self.funcionario.get_grupo().send({
+            'text': json.dumps({
+                'message': 'LOCAIS_DISPONIVEIS',
+                'data': { 'locais': locais, }
+            })})
+        
+    def get_postos_inativos(self, data):
+        local_id = data['local']
+        local = Local.objects.get(pk=local_id)
+        postos = [ model_to_dict(p) for p in local.postos.filter(
+            estado=Posto.INATIVO) ]
+        self.funcionario.get_grupo().send({
+            'text': json.dumps({
+                'message': 'POSTOS_INATIVOS',
+                'data': { 'postos': postos, }
+            })})
 
     def receive(self, content, **kwargs):
         if self.message.user.is_authenticated:
+            self.funcionario = Funcionario.get_from_user(self.message.user)
             if content['message'] == 'OCUPAR_POSTO':
                 self.ocupar_posto(content['data'])
             elif content['message'] == 'CHAMAR_SEGUINTE':
@@ -68,10 +91,12 @@ class PostoConsumer(JsonWebsocketConsumer):
                 self.indicar_ausencia(content['data'])
             elif content['message'] == 'ATENDER':
                 self.atender(content['data'])
-            elif content['message'] == 'SAIR_DA_FILA':
-                self.sair_da_fila(content['data'])
             elif content['message'] == 'DESOCUPAR_POSTO':
                 self.desocupar_posto(content['data'])
+            elif content['message'] == 'GET_ESTADO':
+                self.get_estado()
+            elif content['message'] == 'GET_POSTOS_INATIVOS':
+                self.get_postos_inativos(content['data'])
 
 class FilaConsumer(JsonWebsocketConsumer):
 

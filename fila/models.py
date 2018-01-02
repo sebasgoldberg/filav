@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 
 from channels import Channel, Group
 from django.forms.models import model_to_dict
+import json
 
 class GroupChannels(models.Model):
 
@@ -83,6 +84,9 @@ class Funcionario(User):
     def atender(self):
         self.posto.atender()
 
+    def get_grupo(self):
+        return PersistedGroup('funcionario-%s' % self.pk)
+
 class Cliente(User):
 
     class Meta:
@@ -155,18 +159,6 @@ class Fila(models.Model):
         if posto is None:
             return
         posto.chamar_cliente(turno)
-
-        posto.get_grupo().send({'message': 'CLIENTE_CHAMADO'})
-
-        tg = turno.get_grupo()
-        tg.send({'message': 'IR_NO_POSTO'})
-
-        fg = self.get_grupo()
-
-        for channel in tg.channels:
-            fg.discard(channel)
-
-        fg.send({'message': 'FILA_AVANCOU'})
 
 
 class TurnoAtivoManager(models.Manager):
@@ -246,16 +238,10 @@ class Turno(models.Model):
     def indicar_ausencia(self):
         self.estado = Turno.AUSENTE
         self.save()
-        tg = self.get_grupo()
-        tg.send({'message': 'AUSENTE'})
-        tg.discard_all()
 
     def atender(self):
         self.estado = Turno.NO_ATENDIMENTO
         self.save()
-        tg = self.get_grupo()
-        tg.send({'message': 'NO_ATENDIMENTO'})
-        tg.discard_all()
 
     def get_posicao(self):
         if self.estado in [Turno.CLIENTE_CHAMADO, Turno.NO_ATENDIMENTO]:
@@ -283,6 +269,7 @@ class Turno(models.Model):
             turno_dict['posto'] = model_to_dict(self.posto)
         except Posto.DoesNotExist:
             pass
+        return turno_dict
 
 
 
@@ -305,6 +292,13 @@ class Posto(models.Model):
     nome = models.CharField(
         max_length=100,
         verbose_name=_('Nome'),
+    )
+
+    local = models.ForeignKey(
+        Local,
+        verbose_name=_('Local'),
+        on_delete=models.CASCADE,
+        related_name='postos'
     )
 
     fila = models.ForeignKey(
@@ -345,6 +339,14 @@ class Posto(models.Model):
     def __str__(self):
         return '%s.%s' % (self.fila, self.nome)
 
+    def notificar(self):
+        if self.funcionario:
+            self.funcionario.get_grupo().send({
+                'text': json.dumps({
+                    'message': 'POSTO',
+                    'data': { 'posto': self.to_dict(), }
+                })})
+
     def get_grupo(self):
         return Group('posto-%s' % self.pk)
 
@@ -352,15 +354,18 @@ class Posto(models.Model):
         self.funcionario = funcionario
         self.estado = Posto.EM_PAUSA
         self.save()
+        self.notificar()
 
     def chamar_seguinte(self):
         self.estado = Posto.ESPERANDO_CLIENTE
         self.save()
+        self.notificar()
         self.fila.avancar()
 
     def cancelar_chamado(self):
         self.estado = Posto.EM_PAUSA
         self.save()
+        self.notificar()
 
     def chamar_cliente(self, turno):
         turno.estado = Turno.CLIENTE_CHAMADO
@@ -368,17 +373,20 @@ class Posto(models.Model):
         self.estado = Posto.CLIENTE_CHAMADO
         self.turno_em_atencao = turno
         self.save()
+        self.notificar()
 
     def atender(self):
         self.estado = Posto.ATENDENDO
         self.save()
         self.turno_em_atencao.atender()
+        self.notificar()
 
     def indicar_ausencia(self):
         self.turno_em_atencao.indicar_ausencia()
         self.estado = Posto.EM_PAUSA
         self.turno_em_atencao = None
         self.save()
+        self.notificar()
 
     def finalizar_atencao(self):
         self.turno_em_atencao.estado = Turno.ATENDIDO
@@ -387,11 +395,17 @@ class Posto(models.Model):
         self.estado = Posto.EM_PAUSA
         self.turno_em_atencao = None
         self.save()
+        self.notificar()
 
     def desocupar(self):
         self.estado = Posto.INATIVO
         self.funcionario = None
         self.save()
+        self.notificar()
+
+    def to_dict(self):
+        posto_dict = model_to_dict(self)
+        return posto_dict
 
 import hashlib
 import time

@@ -26,7 +26,7 @@ def get_or_create_posto(reg=['l1', 'f1', 'p1']):
     POSTO = 2
     local = get_or_create_local(reg[LOCAL])
     fila, _ = Fila.objects.get_or_create(nome=reg[FILA], local=local)
-    posto, _ = Posto.objects.get_or_create(nome=reg[POSTO], fila=fila)
+    posto, _ = Posto.objects.get_or_create(nome=reg[POSTO], fila=fila, local=local)
     return posto
 
 
