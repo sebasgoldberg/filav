@@ -159,6 +159,9 @@ class Fila(models.Model):
         if posto is None:
             return
         posto.chamar_cliente(turno)
+        turno.notificar()
+        for turno in Turno.ativos.filter(fila=self):
+            turno.notificar()
 
 
 class TurnoAtivoManager(models.Manager):
@@ -235,19 +238,29 @@ class Turno(models.Model):
             tg.discard(channel)
             fg.discard(channel)
 
+    def finalizar_atencao(self):
+        self.estado = Turno.ATENDIDO
+        self.save()
+        self.notificar()
+
     def indicar_ausencia(self):
         self.estado = Turno.AUSENTE
         self.save()
+        self.notificar()
 
     def atender(self):
         self.estado = Turno.NO_ATENDIMENTO
         self.save()
+        self.notificar()
+
+    def chamar_cliente(self):
+        self.estado = Turno.CLIENTE_CHAMADO
+        self.save()
+        self.notificar()
 
     def get_posicao(self):
-        if self.estado in [Turno.CLIENTE_CHAMADO, Turno.NO_ATENDIMENTO]:
-            return 0
         if self.estado != Turno.NA_FILA:
-            raise Exception('Para obter uma posição o turno deve deve ter estado na fila.')
+            return 0
         i = 0
         for x in Turno.na_fila.filter(fila=self.fila).order_by('creation_date'):
             i = i + 1
@@ -271,6 +284,13 @@ class Turno(models.Model):
             pass
         return turno_dict
 
+    def notificar(self):
+        if self.cliente:
+            self.cliente.get_grupo().send({
+                'text': json.dumps({
+                    'message': 'TURNO_ATIVO',
+                    'data': { 'turno': self.to_dict(), }
+                })})
 
 
 class Posto(models.Model):
@@ -282,12 +302,14 @@ class Posto(models.Model):
     ATENDENDO = 4
 
     ESTADOS = (
-        (INATIVO, _('Inativo')),
-        (EM_PAUSA, _('Em pausa')),
-        (ESPERANDO_CLIENTE, _('Esperando cliente')),
-        (CLIENTE_CHAMADO, _('Cliente chamado')),
-        (ATENDENDO, _('Atendendo')),
+        (INATIVO, ugt('Inativo')),
+        (EM_PAUSA, ugt('Em pausa')),
+        (ESPERANDO_CLIENTE, ugt('Esperando cliente')),
+        (CLIENTE_CHAMADO, ugt('Cliente chamado')),
+        (ATENDENDO, ugt('Atendendo')),
     )
+
+    ESTADOS_DICT = dict(ESTADOS)
 
     nome = models.CharField(
         max_length=100,
@@ -323,13 +345,11 @@ class Posto(models.Model):
         on_delete=models.PROTECT,
         null=True,
         blank=True,
-        editable=False
     )
 
     estado = models.IntegerField(
         choices=ESTADOS,
         default=INATIVO,
-        editable=False
         )
 
     class Meta:
@@ -368,11 +388,10 @@ class Posto(models.Model):
         self.notificar()
 
     def chamar_cliente(self, turno):
-        turno.estado = Turno.CLIENTE_CHAMADO
-        turno.save()
         self.estado = Posto.CLIENTE_CHAMADO
         self.turno_em_atencao = turno
         self.save()
+        turno.chamar_cliente()
         self.notificar()
 
     def atender(self):
@@ -389,9 +408,7 @@ class Posto(models.Model):
         self.notificar()
 
     def finalizar_atencao(self):
-        self.turno_em_atencao.estado = Turno.ATENDIDO
-        self.turno_em_atencao.save()
-        self.turno_em_atencao.get_grupo().discard_all()
+        self.turno_em_atencao.finalizar_atencao()
         self.estado = Posto.EM_PAUSA
         self.turno_em_atencao = None
         self.save()
@@ -403,8 +420,22 @@ class Posto(models.Model):
         self.save()
         self.notificar()
 
+    def texto_estado(self):
+        return Posto.ESTADOS_DICT[self.estado]
+
     def to_dict(self):
         posto_dict = model_to_dict(self)
+        posto_dict['local'] = model_to_dict(self.local)
+        posto_dict['fila'] = model_to_dict(self.fila)
+        if self.turno_em_atencao:
+            posto_dict['turno_em_atencao'] = model_to_dict(
+                self.turno_em_atencao)
+            posto_dict['turno_em_atencao']['cliente'] = {
+                'name': self.turno_em_atencao.cliente.username
+                }
+        posto_dict['texto_estado'] = self.texto_estado()
+        posto_dict['estado'] = self.estado
+        posto_dict['funcionario'] = { 'name': self.funcionario.username }
         return posto_dict
 
 import hashlib

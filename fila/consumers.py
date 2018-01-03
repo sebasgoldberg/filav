@@ -54,7 +54,7 @@ class PostoConsumer(JsonWebsocketConsumer):
     def get_estado(self):
         try:
             self.funcionario.posto.notificar()
-        except:
+        except Posto.DoesNotExist:
             self.get_locais_disponiveis()
 
     def get_locais_disponiveis(self):
