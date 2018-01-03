@@ -40,8 +40,9 @@ class ScannerView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
     permission_required = ('fila.habilitar_scanner',)
 
 
-class PostoView(LoginRequiredMixin, TemplateView):
+class PostoView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
 
     template_name = "fila/posto/index.html"
+    permission_required = ('fila.atender_clientes',)
 
 

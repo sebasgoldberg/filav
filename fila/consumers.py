@@ -18,10 +18,11 @@ class PostoConsumer(JsonWebsocketConsumer):
 
     def connect(self, message, **kwargs):
         if self.message.user.is_authenticated:
-            super(PostoConsumer, self).connect(message, **kwargs)
-            self.funcionario = Funcionario.get_from_user(self.message.user)
-            self.funcionario.get_grupo().add(self.message.reply_channel)
-            self.get_estado()
+            if self.message.user.has_perm('fila.atender_clientes'):
+                super(PostoConsumer, self).connect(message, **kwargs)
+                self.funcionario = Funcionario.get_from_user(self.message.user)
+                self.funcionario.get_grupo().add(self.message.reply_channel)
+                self.get_estado()
 
     def disconnect(self, message, **kwargs):
         if self.message.user.is_authenticated:
@@ -78,25 +79,27 @@ class PostoConsumer(JsonWebsocketConsumer):
 
     def receive(self, content, **kwargs):
         if self.message.user.is_authenticated:
-            self.funcionario = Funcionario.get_from_user(self.message.user)
-            if content['message'] == 'OCUPAR_POSTO':
-                self.ocupar_posto(content['data'])
-            elif content['message'] == 'CHAMAR_SEGUINTE':
-                self.chamar_seguinte(content['data'])
-            elif content['message'] == 'CANCELAR_CHAMADO':
-                self.cancelar_chamado(content['data'])
-            elif content['message'] == 'FINALIZAR_ATENCAO':
-                self.finalizar_atencao(content['data'])
-            elif content['message'] == 'INDICAR_AUSENCIA':
-                self.indicar_ausencia(content['data'])
-            elif content['message'] == 'ATENDER':
-                self.atender(content['data'])
-            elif content['message'] == 'DESOCUPAR_POSTO':
-                self.desocupar_posto(content['data'])
-            elif content['message'] == 'GET_ESTADO':
-                self.get_estado()
-            elif content['message'] == 'GET_POSTOS_INATIVOS':
-                self.get_postos_inativos(content['data'])
+            if self.message.user.has_perm('fila.atender_clientes'):
+                self.funcionario = Funcionario.get_from_user(self.message.user)
+                if content['message'] == 'OCUPAR_POSTO':
+                    self.ocupar_posto(content['data'])
+                elif content['message'] == 'CHAMAR_SEGUINTE':
+                    self.chamar_seguinte(content['data'])
+                elif content['message'] == 'CANCELAR_CHAMADO':
+                    self.cancelar_chamado(content['data'])
+                elif content['message'] == 'FINALIZAR_ATENCAO':
+                    self.finalizar_atencao(content['data'])
+                elif content['message'] == 'INDICAR_AUSENCIA':
+                    self.indicar_ausencia(content['data'])
+                elif content['message'] == 'ATENDER':
+                    self.atender(content['data'])
+                elif content['message'] == 'DESOCUPAR_POSTO':
+                    self.desocupar_posto(content['data'])
+                elif content['message'] == 'GET_ESTADO':
+                    self.get_estado()
+                elif content['message'] == 'GET_POSTOS_INATIVOS':
+                    self.get_postos_inativos(content['data'])
+
 
 class FilaConsumer(JsonWebsocketConsumer):
 

@@ -355,6 +355,9 @@ class Posto(models.Model):
     class Meta:
         verbose_name = _("Posto")
         verbose_name_plural = _("Postos")
+        permissions = (
+            ('atender_clientes', 'Pode ocupar um posto e atender os clientes.'),
+        )
 
     def __str__(self):
         return '%s.%s' % (self.fila, self.nome)
