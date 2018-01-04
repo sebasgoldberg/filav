@@ -7,3 +7,9 @@
 [submodule "fila/static/fila/posto"]
 	path = fila/static/fila/posto
 	url = git@iamsoft.org:filav-posto.git
+[submodule "fila/static/fila/resources/socket"]
+	path = fila/static/fila/resources/socket
+	url = git@iamsoft.org:channels-ui5-socket.git
+[submodule "fila/static/fila/resources/openui5-qrcode"]
+	path = fila/static/fila/resources/openui5-qrcode
+	url = https://github.com/jpenninkhof/openui5-qrcode.git
