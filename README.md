@@ -93,9 +93,13 @@ Nesta app o funcionario que esteja no posto podera realizar as seguintes operaç
 - `git clone git@github.com/sebas.goldberg/filav.git`
 - `cd filav`
 - Criar o banco de dados.
+- Criar um script setenv (Tomar como exemplo o arquivo setenv.default).
+- Realizar as mudanças pertinentes no settings.py (Utilização de outro banco de dados, etc.).
 - Criar o virtualenv: `.mkvirtualenv --python=$(which python3) filav`.
 - Instalar as dependencias: `pip install -r requirements.txt`
+- Executar setenv: `source setenv`
 - Aplicar as migrações ao banco de dados: `./manage.py migrate`
-- Criar um script setenv com as variaveis de entorno necesarias para settings.py (realizar as mudanças pertinentes no settings.py).
-- Executar a aplicação: `. setenv && ./manage.py runserver`
+- Executar a aplicação: `./manage.py runserver`
+
+Nota: Sempre que executar a aplicação, deve ser executado o script setenv utilizando source.
 
