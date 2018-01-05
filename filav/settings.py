@@ -214,7 +214,7 @@ LDAP_AUTH_USER_LOOKUP_FIELDS = ("username",)
 # Path to a callable that takes a dict of {model_field_name: value},
 # returning a dict of clean model data.
 # Use this to customize how data loaded from LDAP is saved to the User model.
-#LDAP_AUTH_CLEAN_USER_DATA = "django_python3_ldap.utils.clean_user_data"
+LDAP_AUTH_CLEAN_USER_DATA = "fila.helpers.clean_user_data"
 
 # Path to a callable that takes a user model and a dict of {ldap_field_name: [value]},
 # and saves any additional user relationships based on the LDAP data.

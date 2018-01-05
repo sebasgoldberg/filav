@@ -45,3 +45,19 @@ def get_or_create_cliente(username='c1'):
     return Cliente.objects.get(username=username)
 
 
+def get_first_and_last_name(name):
+    names = name.split(',', 1)
+    if len(names) == 0:
+        return ('','')
+    if len(names)==1:
+        return ('', names[0].strip()[0:30])
+    return (names[1].strip()[0:30], names[0].strip()[0:30])
+
+def clean_user_data(model_fields):
+    """
+    Transforms the user data loaded from
+    LDAP into a form suitable for creating a user.
+    """
+    model_fields['first_name'], model_fields['last_name'] = get_first_and_last_name(
+        model_fields.get('first_name',''))
+    return model_fields
