@@ -79,3 +79,20 @@ Nesta app o funcionario que esteja no posto podera realizar as seguintes operaç
 - Finalizar atenção.
 - Indicar ausencia do cliente.
 
+## Instalação
+
+### Requisitos
+- Ter um servidor Redis instalado: sudo apt-get install redis-server
+- Ter um servidor LDAP (Opcional, em caso de querer fazer login utilizando alguma conta corporativa).
+- Configurar a autenticação por facebook (Opcional).
+- Ter instalado python3
+- Ter virtualenv (Recomendado).
+
+### Procedimento
+- Criar o banco de dados.
+- Criar o virtualenv: mkvirtualenv --python=$(which python3) filav
+- Instalar as dependencias: pip install -r requirements.txt
+- Aplicar as migrações ao banco de dados: ./manage.py migrate
+- Criar um script setenv com as variaveis de entorno necesarias para settings.py
+- Executar a aplicação: . setenv && ./manage.py runserver
+
