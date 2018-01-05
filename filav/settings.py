@@ -96,9 +96,9 @@ DATABASES = {
 DATABASES = { 
     'default': {
     'ENGINE': 'django.db.backends.postgresql_psycopg2', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
-    'NAME': os.getenv('DBNAME', 'filav'),                      # Or path to database file if using sqlite3.
-    'USER': os.getenv('DBUSER', 'filav'),                      # Not used with sqlite3.
-    'PASSWORD': os.getenv('DBPASSWORD','fila123v'),                  # Not used with sqlite3.
+    'NAME': os.getenv('DBNAME'),                      # Or path to database file if using sqlite3.
+    'USER': os.getenv('DBUSER'),                      # Not used with sqlite3.
+    'PASSWORD': os.getenv('DBPASSWORD'),                  # Not used with sqlite3.
     'HOST': 'localhost',                      # Set to empty string for localhost. Not used with sqlite3.
     'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
     'TEST_CHARSET': 'utf8',
@@ -193,10 +193,10 @@ LDAP_AUTH_USE_TLS = False
 
 
 # The LDAP search base for looking up users.
-LDAP_AUTH_SEARCH_BASE = "dc=cencosud,dc=corp"
+LDAP_AUTH_SEARCH_BASE = os.getenv('LDAP_AUTH_SEARCH_BASE')
 
 # The LDAP class that represents a user.
-LDAP_AUTH_OBJECT_CLASS = "user"   # @todo
+LDAP_AUTH_OBJECT_CLASS = "user"
 
 # User model fields mapped to the LDAP
 # attributes that represent them.
@@ -234,7 +234,7 @@ LDAP_AUTH_FORMAT_SEARCH_FILTERS = "django_python3_ldap.utils.format_search_filte
 #LDAP_AUTH_FORMAT_USERNAME = "django_python3_ldap.utils.format_username_active_directory"
 
 LDAP_AUTH_FORMAT_USERNAME = "django_python3_ldap.utils.format_username_active_directory_principal"
-LDAP_AUTH_ACTIVE_DIRECTORY_DOMAIN = "cencosud.corp"
+LDAP_AUTH_ACTIVE_DIRECTORY_DOMAIN = os.getenv('LDAP_AUTH_ACTIVE_DIRECTORY_DOMAIN')
 
 # Sets the login domain for Active Directory users.
 #LDAP_AUTH_ACTIVE_DIRECTORY_DOMAIN = 'ECDC'
