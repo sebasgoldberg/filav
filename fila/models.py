@@ -419,9 +419,9 @@ class Posto(models.Model):
 
     def desocupar(self):
         self.estado = Posto.INATIVO
+        self.notificar()
         self.funcionario = None
         self.save()
-        self.notificar()
 
     def texto_estado(self):
         return Posto.ESTADOS_DICT[self.estado]
