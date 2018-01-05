@@ -163,7 +163,7 @@ class EstadosPostoTestCase(ChannelTestCase):
     def test_em_pausa_apos_ocupado(self):
 
         posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
-        funcionario1 = h.get_or_create_funcionario('f1')
+        funcionario1 = h.get_or_create_funcionario_posto('f1')
 
         wsp1 = WSPosto(funcionario1)
         wsp1.ocupar_posto(posto1)
@@ -175,7 +175,7 @@ class EstadosPostoTestCase(ChannelTestCase):
     def test_inativo_apos_desocupar(self):
 
         posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
-        funcionario1 = h.get_or_create_funcionario('f1')
+        funcionario1 = h.get_or_create_funcionario_posto('f1')
 
         wsp1 = WSPosto(funcionario1)
         wsp1.ocupar_posto(posto1)
@@ -188,7 +188,7 @@ class EstadosPostoTestCase(ChannelTestCase):
     def test_esperando_cliente(self):
 
         posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
-        funcionario1 = h.get_or_create_funcionario('f1')
+        funcionario1 = h.get_or_create_funcionario_posto('f1')
 
         wsp1 = WSPosto(funcionario1)
         wsp1.ocupar_posto(posto1)
@@ -200,7 +200,7 @@ class EstadosPostoTestCase(ChannelTestCase):
     def test_em_pausa_apos_cancelar_chamado(self):
 
         posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
-        funcionario1 = h.get_or_create_funcionario('f1')
+        funcionario1 = h.get_or_create_funcionario_posto('f1')
 
         wsp1 = WSPosto(funcionario1)
         wsp1.ocupar_posto(posto1)
@@ -216,7 +216,7 @@ class EstadosPostoTestCase(ChannelTestCase):
     def test_cliente_chamado_apos_espera_cliente(self):
 
         posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
-        funcionario1 = h.get_or_create_funcionario('f1')
+        funcionario1 = h.get_or_create_funcionario_posto('f1')
         cliente1 = h.get_or_create_cliente('c1')
 
         wsp1 = WSPosto(funcionario1)
@@ -239,7 +239,7 @@ class EstadosPostoTestCase(ChannelTestCase):
     def test_cliente_chamado_imediatamente(self):
 
         posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
-        funcionario1 = h.get_or_create_funcionario('f1')
+        funcionario1 = h.get_or_create_funcionario_posto('f1')
         cliente1 = h.get_or_create_cliente('c1')
 
         wsp1 = WSPosto(funcionario1)
@@ -257,7 +257,7 @@ class EstadosPostoTestCase(ChannelTestCase):
 
     def test_atendendo(self):
         posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
-        funcionario1 = h.get_or_create_funcionario('f1')
+        funcionario1 = h.get_or_create_funcionario_posto('f1')
         cliente1 = h.get_or_create_cliente('c1')
 
         wsp1 = WSPosto(funcionario1)
@@ -279,7 +279,7 @@ class EstadosPostoTestCase(ChannelTestCase):
     def test_em_pausa_apos_cliente_chamado(self):
 
         posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
-        funcionario1 = h.get_or_create_funcionario('f1')
+        funcionario1 = h.get_or_create_funcionario_posto('f1')
         cliente1 = h.get_or_create_cliente('c1')
 
         wsp1 = WSPosto(funcionario1)
@@ -303,7 +303,7 @@ class EstadosPostoTestCase(ChannelTestCase):
     def test_em_pausa_apos_atendendo(self):
 
         posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
-        funcionario1 = h.get_or_create_funcionario('f1')
+        funcionario1 = h.get_or_create_funcionario_posto('f1')
         cliente1 = h.get_or_create_cliente('c1')
 
         wsp1 = WSPosto(funcionario1)
@@ -358,7 +358,7 @@ class EstadosTurnoTestCase(ChannelTestCase):
     def test_cliente_chamado(self):
 
         posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
-        funcionario1 = h.get_or_create_funcionario('f1')
+        funcionario1 = h.get_or_create_funcionario_posto('f1')
         cliente1 = h.get_or_create_cliente('c1')
 
         wsp1 = WSPosto(funcionario1)
@@ -376,7 +376,7 @@ class EstadosTurnoTestCase(ChannelTestCase):
     def test_no_atendimento(self):
 
         posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
-        funcionario1 = h.get_or_create_funcionario('f1')
+        funcionario1 = h.get_or_create_funcionario_posto('f1')
         cliente1 = h.get_or_create_cliente('c1')
 
         wsp1 = WSPosto(funcionario1)
@@ -396,7 +396,7 @@ class EstadosTurnoTestCase(ChannelTestCase):
     def test_atendido(self):
 
         posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
-        funcionario1 = h.get_or_create_funcionario('f1')
+        funcionario1 = h.get_or_create_funcionario_posto('f1')
         cliente1 = h.get_or_create_cliente('c1')
 
         wsp1 = WSPosto(funcionario1)
@@ -417,7 +417,7 @@ class EstadosTurnoTestCase(ChannelTestCase):
     def test_ausente(self):
 
         posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
-        funcionario1 = h.get_or_create_funcionario('f1')
+        funcionario1 = h.get_or_create_funcionario_posto('f1')
         cliente1 = h.get_or_create_cliente('c1')
 
         wsp1 = WSPosto(funcionario1)
@@ -439,7 +439,7 @@ class MensagensFuncionarioTestCase(ChannelTestCase):
     def test_connect_sem_posto_ativo(self):
        
         posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
-        funcionario1 = h.get_or_create_funcionario('f1')
+        funcionario1 = h.get_or_create_funcionario_posto('f1')
 
         wsp1 = WSPosto(funcionario1)
 
@@ -455,7 +455,7 @@ class MensagensFuncionarioTestCase(ChannelTestCase):
     def test_connect_com_posto_ativo(self):
 
         posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
-        funcionario1 = h.get_or_create_funcionario('f1')
+        funcionario1 = h.get_or_create_funcionario_posto('f1')
         funcionario1.ocupar_posto(posto1)
         posto1.refresh_from_db()
 
@@ -474,7 +474,7 @@ class MensagensFuncionarioTestCase(ChannelTestCase):
     def test_get_postos_inativos(self):
 
         posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
-        funcionario1 = h.get_or_create_funcionario('f1')
+        funcionario1 = h.get_or_create_funcionario_posto('f1')
 
         wsp1 = WSPosto(funcionario1)
 
@@ -495,7 +495,7 @@ class MensagensFuncionarioTestCase(ChannelTestCase):
     def test_ocupar_posto(self):
 
         posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
-        funcionario1 = h.get_or_create_funcionario('f1')
+        funcionario1 = h.get_or_create_funcionario_posto('f1')
 
         wsp1 = WSPosto(funcionario1)
 
@@ -516,7 +516,7 @@ class MensagensFuncionarioTestCase(ChannelTestCase):
     def test_chamar_seguinte(self):
 
         posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
-        funcionario1 = h.get_or_create_funcionario('f1')
+        funcionario1 = h.get_or_create_funcionario_posto('f1')
 
         wsp1 = WSPosto(funcionario1)
 
@@ -541,7 +541,7 @@ class MensagensFuncionarioTestCase(ChannelTestCase):
     def test_cancelar_chamado(self):
 
         posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
-        funcionario1 = h.get_or_create_funcionario('f1')
+        funcionario1 = h.get_or_create_funcionario_posto('f1')
 
         wsp1 = WSPosto(funcionario1)
 
@@ -570,7 +570,7 @@ class MensagensFuncionarioTestCase(ChannelTestCase):
     def test_cliente_em_caminho(self):
 
         posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
-        funcionario1 = h.get_or_create_funcionario('f1')
+        funcionario1 = h.get_or_create_funcionario_posto('f1')
 
         wsp1 = WSPosto(funcionario1)
 
@@ -603,7 +603,7 @@ class MensagensFuncionarioTestCase(ChannelTestCase):
     def test_atender(self):
 
         posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
-        funcionario1 = h.get_or_create_funcionario('f1')
+        funcionario1 = h.get_or_create_funcionario_posto('f1')
 
         cliente1 = h.get_or_create_cliente('c1')
         wsf1 = WSFila(cliente1)
@@ -637,7 +637,7 @@ class MensagensFuncionarioTestCase(ChannelTestCase):
     def test_indicar_ausencia(self):
 
         posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
-        funcionario1 = h.get_or_create_funcionario('f1')
+        funcionario1 = h.get_or_create_funcionario_posto('f1')
 
         cliente1 = h.get_or_create_cliente('c1')
         wsf1 = WSFila(cliente1)
@@ -671,7 +671,7 @@ class MensagensFuncionarioTestCase(ChannelTestCase):
     def test_finalizar_atencao(self):
 
         posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
-        funcionario1 = h.get_or_create_funcionario('f1')
+        funcionario1 = h.get_or_create_funcionario_posto('f1')
 
         cliente1 = h.get_or_create_cliente('c1')
         wsf1 = WSFila(cliente1)
@@ -709,7 +709,7 @@ class MensagensFuncionarioTestCase(ChannelTestCase):
     def test_desocupar(self):
        
         posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
-        funcionario1 = h.get_or_create_funcionario('f1')
+        funcionario1 = h.get_or_create_funcionario_posto('f1')
 
         wsp1 = WSPosto(funcionario1)
 

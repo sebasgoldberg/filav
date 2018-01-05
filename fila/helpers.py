@@ -8,6 +8,12 @@ def get_or_create_funcionario_scanner(username='s1'):
     f.user_permissions.add(p)
     return f
 
+def get_or_create_funcionario_posto(username='p1'):
+    f = get_or_create_funcionario(username)
+    p = Permission.objects.get(codename='atender_clientes')
+    f.user_permissions.add(p)
+    return f
+
 def get_or_create_funcionario(username='f1'):
     try:
         return Funcionario.objects.get(username=username)
