@@ -1,15 +1,15 @@
 [submodule "fila/static/fila/cliente"]
 	path = fila/static/fila/cliente
-	url = git@iamsoft.org:filav-cliente.git
+	url = git@github.com:sebasgoldberg/filav-cliente.git
 [submodule "fila/static/fila/scanner"]
 	path = fila/static/fila/scanner
-	url = git@iamsoft.org:filav-scanner.git
+	url = git@github.com:sebasgoldberg/filav-scanner.git
 [submodule "fila/static/fila/posto"]
 	path = fila/static/fila/posto
-	url = git@iamsoft.org:filav-posto.git
+	url = git@github.com:sebasgoldberg/filav-posto.git
 [submodule "fila/static/fila/resources/socket"]
 	path = fila/static/fila/resources/socket
-	url = git@iamsoft.org:channels-ui5-socket.git
+	url = git@github.com:sebasgoldberg/channels-ui5-socket.git
 [submodule "fila/static/fila/resources/openui5-qrcode"]
 	path = fila/static/fila/resources/openui5-qrcode
 	url = https://github.com/jpenninkhof/openui5-qrcode.git
