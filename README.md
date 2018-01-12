@@ -83,9 +83,9 @@ Nesta app o funcionario que esteja no posto podera realizar as seguintes operaç
 - `git clone --recursive git@github.com/sebas.goldberg/filav.git`
 - `cd filav`
 - `cp web-variables.default.env web-variables.env` (editar o novo arquivo conforme suas necesidades).
+- `docker build -t filav .`
 - `mkdir crt` e colocar o certificado e a chave privada a utilizar com o daphne (HTTP/WebSocket Server).
   O nome do certificado deve ser fullchain.pem e o nome da chave privada deve ser privkey.pem.
-- `docker build -t filav .`
 - `docker-compose up`
 
 ## Instalação (sem Docker)
@@ -99,7 +99,7 @@ Nesta app o funcionario que esteja no posto podera realizar as seguintes operaç
 - Ter instalado postgresql (Recomendado): `sudo apt-get install postgresql-x.x`
 
 ### Procedimento
-- `git clone --recursive git@github.com/sebas.goldberg/filav.git`
+- `git clone --recursive https://github.com/sebasgoldberg/filav.git`
 - `cd filav`
 - Criar o banco de dados.
 - Criar um script setenv (Tomar como exemplo o arquivo setenv.default).
