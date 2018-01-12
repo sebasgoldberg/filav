@@ -15,4 +15,6 @@ if not User.objects.filter(username='${SUPERUSER_NAME}'):
     User.objects.create_superuser('${SUPERUSER_NAME}', '${SUPERUSER_EMAIL}', '${SUPERUSER_PASSWORD}')
 END
 
-python3 manage.py runserver 0.0.0.0:8000
+./manage.py runworker &
+
+daphne -e ssl:443:privateKey=/crt/privkey.pem:certKey=/crt/fullchain.pem filav.asgi:channel_layer
