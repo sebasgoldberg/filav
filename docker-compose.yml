@@ -1,0 +1,17 @@
+version: '2'
+
+services:
+  db:
+    image: postgres
+  redis:
+    image: redis
+  web:
+    env_file:
+      - web-variables.env
+    image: filav
+    restart: on-failure
+    ports:
+      - "8000:8000"
+    links:
+      - db:db
+      - redis:redis

@@ -1,3 +1,4 @@
+django==1.11.8
 channels
 djangorestframework
 djangorestframework-expander

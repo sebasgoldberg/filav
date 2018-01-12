@@ -20,3 +20,4 @@ djangocms_carrousel/*
 log/*
 crt
 setenv
+web-variables.env

@@ -25,7 +25,7 @@ SECRET_KEY = ')#m18^ab!+8ajc(sdv^duo_b@6y6tzyp4*_7a_l*%j$gv&b0pu'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['iamsoft.org', 'ns1.vpn.iamsoft.org', 'localhost']
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost').split(' ')
 
 
 # Application definition
@@ -99,8 +99,8 @@ DATABASES = {
     'NAME': os.getenv('DBNAME'),                      # Or path to database file if using sqlite3.
     'USER': os.getenv('DBUSER'),                      # Not used with sqlite3.
     'PASSWORD': os.getenv('DBPASSWORD'),                  # Not used with sqlite3.
-    'HOST': 'localhost',                      # Set to empty string for localhost. Not used with sqlite3.
-    'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
+    'HOST': os.getenv('DBHOST', 'localhost'),                      # Set to empty string for localhost. Not used with sqlite3.
+    'PORT': os.getenv('DBPORT', '5432'),                      # Set to empty string for default. Not used with sqlite3.
     'TEST_CHARSET': 'utf8',
     }   
 }
@@ -148,7 +148,7 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "asgi_redis.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [("localhost", 6379)],
+            "hosts": [(os.getenv('REDISHOST', 'localhost'), int(os.getenv('REDISPORT', 6379)))],
         },
         "ROUTING": "filav.routing.channel_routing",
     },
@@ -186,7 +186,10 @@ LOGIN_REDIRECT_URL = 'cliente'
 """
 
 # The URL of the LDAP server.
-LDAP_AUTH_URL = "ldap://localhost:3890"
+LDAP_AUTH_URL = "ldap://%s:%s" % (
+    os.getenv('LDAP_AUTH_HOST', 'localhost'),
+    os.getenv('LDAP_AUTH_PORT', '389')
+    )
 
 # Initiate TLS on connection.
 LDAP_AUTH_USE_TLS = False
