@@ -79,7 +79,16 @@ Nesta app o funcionario que esteja no posto podera realizar as seguintes operaç
 - Finalizar atenção.
 - Indicar ausencia do cliente.
 
-## Instalação
+## Deploy com Docker
+- `git clone --recursive git@github.com/sebas.goldberg/filav.git`
+- `cd filav`
+- `cp web-variables.default.env web-variables.env` (editar o novo arquivo conforme suas necesidades).
+- `docker build -t filav .`
+- `mkdir crt` e colocar o certificado e a chave privada a utilizar com o daphne (HTTP/WebSocket Server).
+  O nome do certificado deve ser fullchain.pem e o nome da chave privada deve ser privkey.pem.
+- `docker-compose up`
+
+## Instalação (sem Docker)
 
 ### Requisitos
 - Ter um servidor Redis instalado: `sudo apt-get install redis-server`
@@ -90,16 +99,18 @@ Nesta app o funcionario que esteja no posto podera realizar as seguintes operaç
 - Ter instalado postgresql (Recomendado): `sudo apt-get install postgresql-x.x`
 
 ### Procedimento
-- `git clone git@github.com/sebas.goldberg/filav.git`
+- `git clone --recursive https://github.com/sebasgoldberg/filav.git`
 - `cd filav`
 - Criar o banco de dados.
 - Criar um script setenv (Tomar como exemplo o arquivo setenv.default).
 - Realizar as mudanças pertinentes no settings.py (Utilização de outro banco de dados, etc.).
 - Criar o virtualenv: `.mkvirtualenv --python=$(which python3) filav`.
 - Instalar as dependencias: `pip install -r requirements.txt`
-- Executar setenv: `source setenv`
+- Executar setenv: `source setenv.sh`
 - Aplicar as migrações ao banco de dados: `./manage.py migrate`
-- Executar a aplicação: `./manage.py runserver`
+- Executar a aplicação: `./manage.py runserver` ou `./runserver.sh`
 
-Nota: Sempre que executar a aplicação, deve ser executado o script setenv utilizando source.
+## Considerações
 
+- A utilização de HTTPS é necesaria para conseguir utilizar a camera do scanner no navegador web.
+- Se o certificado não fosse de confiança, então o web socket, em geral não funcionara em dispositivos mobiles.
