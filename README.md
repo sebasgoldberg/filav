@@ -23,14 +23,14 @@ a realizar para transitar de um estado a outro.
 
 ![Diagrama de Estados Posto][estados_posto]
 
-[estados_posto]: https://raw.githubusercontent.com/sebasgoldberg/filav/master/docs/estados-postos.png "Diagrama de Estados Postos"
+[estados_posto]: ./raw/master/docs/estados-postos.png "Diagrama de Estados Postos"
 
 A continuação ficam definidos os estados em que poderia estar um turno e as operações
 a realizar para transitar de um estado a outro.
 
 ![Diagrama de Estados Turno][estados_turno]
 
-[estados_turno]: https://raw.githubusercontent.com/sebasgoldberg/filav/master/docs/estados-turnos.png "Diagrama de Estados Turno"
+[estados_turno]: ./raw/master/docs/estados-turnos.png "Diagrama de Estados Turno"
 
 A continuação fica definida a sequencia que valida que o cliente esteja presencialmente na loja
 sem necessidade de utilizar serviços de localização.
@@ -39,7 +39,7 @@ algum scanner da loja.
 
 ![Diagrama de Sequencia Ingresso][sequencia_ingresso]
 
-[sequencia_ingresso]: https://raw.githubusercontent.com/sebasgoldberg/filav/master/docs/sequencia-ingresso.png "Diagrama de Sequencia Ingresso"
+[sequencia_ingresso]: ./raw/master/docs/sequencia-ingresso.png "Diagrama de Sequencia Ingresso"
 
 ### Frontend
 
