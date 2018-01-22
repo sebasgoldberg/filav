@@ -9,8 +9,13 @@ then
   CERT_KEY_FILE=crt/fullchain.pem
 fi
 
+if [ -x $SSL_PORT ]
+then
+    SSL_PORT=443
+fi
+
 ./manage.py runworker &
 RUNWORKER_PID="$!"
 
-daphne -e ssl:443:privateKey=${PRIVATE_KEY_FILE}:certKey=${CERT_KEY_FILE} filav.asgi:channel_layer &
+daphne -e ssl:${SSL_PORT}:privateKey=${PRIVATE_KEY_FILE}:certKey=${CERT_KEY_FILE} filav.asgi:channel_layer &
 DAPHNE_PID="$!"
