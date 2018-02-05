@@ -16,31 +16,6 @@ Implementado utilizando Django Channels.
 
 Responsavel por coordinar a interação entre as apps de cliente, scanner e posto em tempo real.
 
-#### Estados
-
-A continuação ficam definidos os estados em que poderia estar um posto e as operações
-a realizar para transitar de um estado a outro.
-
-![Diagrama de Estados Posto][estados_posto]
-
-[estados_posto]: ./raw/master/docs/estados-postos.png "Diagrama de Estados Postos"
-
-A continuação ficam definidos os estados em que poderia estar um turno e as operações
-a realizar para transitar de um estado a outro.
-
-![Diagrama de Estados Turno][estados_turno]
-
-[estados_turno]: ./raw/master/docs/estados-turnos.png "Diagrama de Estados Turno"
-
-A continuação fica definida a sequencia que valida que o cliente esteja presencialmente na loja
-sem necessidade de utilizar serviços de localização.
-Basicamente a ideia é gerar um codigo QR unico no dispositivo do cliente, e escanear o mesmo em
-algum scanner da loja.
-
-![Diagrama de Sequencia Ingresso][sequencia_ingresso]
-
-[sequencia_ingresso]: ./raw/master/docs/sequencia-ingresso.png "Diagrama de Sequencia Ingresso"
-
 ### Frontend
 
 #### App de Cliente
@@ -114,3 +89,36 @@ Nesta app o funcionario que esteja no posto podera realizar as seguintes operaç
 
 - A utilização de HTTPS é necesaria para conseguir utilizar a camera do scanner no navegador web.
 - Se o certificado não fosse de confiança, então o web socket, em geral não funcionara em dispositivos mobiles.
+
+## Alguns Diagramas
+
+### Diagramas de Estado de um Posto
+
+A continuação ficam definidos os estados em que poderia estar um posto e as operações
+a realizar para transitar de um estado a outro.
+
+![Diagrama de Estados Posto][estados_posto]
+
+[estados_posto]: https://raw.githubusercontent.com/sebasgoldberg/filav/master/docs/estados-postos.png "Diagrama de Estados Postos"
+
+### Diagrama de Estados de um Turno
+
+A continuação ficam definidos os estados em que poderia estar um turno e as operações
+a realizar para transitar de um estado a outro.
+
+![Diagrama de Estados Turno][estados_turno]
+
+[estados_turno]: https://raw.githubusercontent.com/sebasgoldberg/filav/master/docs/estados-turnos.png "Diagrama de Estados Turno"
+
+### Diagrama de Sequencia da Validação Presencial do Cliente na Loja Antes de Acessar numa Fila
+
+A continuação fica definida a sequencia que valida que o cliente esteja presencialmente na loja
+sem necessidade de utilizar serviços de localização.
+Basicamente a ideia é gerar um codigo QR unico no dispositivo do cliente, e escanear o mesmo em
+algum scanner da loja.
+
+![Diagrama de Sequencia Ingresso][sequencia_ingresso]
+
+[sequencia_ingresso]: https://raw.githubusercontent.com/sebasgoldberg/filav/master/docs/sequencia-ingresso.png "Diagrama de Sequencia Ingresso"
+
+
