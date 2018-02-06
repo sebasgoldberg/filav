@@ -55,7 +55,7 @@ Nesta app o funcionario que esteja no posto podera realizar as seguintes operaç
 - Indicar ausencia do cliente.
 
 ## Deploy com Docker
-- `git clone --recursive git@github.com/sebas.goldberg/filav.git`
+- `git clone --recursive https://github.com/sebasgoldberg/filav.git`
 - `cd filav`
 - `cp web-variables.default.env web-variables.env` (editar o novo arquivo conforme suas necesidades).
 - `docker build -t filav .`
