@@ -126,8 +126,9 @@ class Cliente(User):
         self.get_estado()
 
 
-    def enviar_turno_ativo(self):
-        turno = self.get_turno_ativo()
+    def enviar_turno_ativo(self, turno=None):
+        if turno is None:
+            turno = self.get_turno_ativo()
         self.get_grupo().send({
             'text': json.dumps({
                 'message': 'TURNO_ATIVO',
@@ -338,11 +339,7 @@ class Turno(models.Model):
 
     def notificar(self):
         if self.cliente:
-            self.cliente.get_grupo().send({
-                'text': json.dumps({
-                    'message': 'TURNO_ATIVO',
-                    'data': { 'turno': self.to_dict(), }
-                })})
+            self.cliente.enviar_turno_ativo(self)
 
 
 class Posto(models.Model):
