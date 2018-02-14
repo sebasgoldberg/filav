@@ -164,7 +164,9 @@ class ScannerConsumer(JsonWebsocketConsumer):
         para o usuario.
         self.message.user é o scanner e deve ter as permissões necessarias.
         """
-        Cliente.enviar_filas_disponiveis(data['qrcode'], data['local'])
+        qrcode = QRCode.objects.get(qrcode=data['qrcode'])
+        cliente = Cliente.objects.get(username=qrcode.user.username)
+        cliente.enviar_filas_disponiveis(qrcode, data['local'])
 
     def receive(self, content, **kwargs):
         if ( self.message.user.is_authenticated and

@@ -87,10 +87,28 @@ class Funcionario(User):
     def get_grupo(self):
         return PersistedGroup('funcionario-%s' % self.pk)
 
+class ChannelsDispatcher:
+
+    def send(self, cliente, data):
+        cliente.get_grupo().send({
+            'text': json.dumps(data)
+            })
+
+
 class Cliente(User):
 
     class Meta:
         proxy = True
+
+    def is_channel_client(self):
+        return True
+
+    def __init__(self, *args, **kwargs):
+        super(Cliente, self).__init__(*args, **kwargs)
+        if self.is_channel_client():
+            self.dispatcher = ChannelsDispatcher()
+        else:
+            self.dispatcher = TelegramDispatcher()
 
     @staticmethod
     def get_from_user(user):
@@ -129,39 +147,32 @@ class Cliente(User):
     def enviar_turno_ativo(self, turno=None):
         if turno is None:
             turno = self.get_turno_ativo()
-        self.get_grupo().send({
-            'text': json.dumps({
+        self.dispatcher.send(self, {
                 'message': 'TURNO_ATIVO',
                 'data': { 'turno': turno.to_dict(), }
-            })})
+            })
 
     def enviar_qrcode(self):
         qrcode, _ = QRCode.objects.get_or_create(user=self)
-        self.get_grupo().send({
-            'text': json.dumps({
+        self.dispatcher.send(self, {
                 "message": "QR_CODE",
                 "data":{
                     "qrcode": qrcode.qrcode,
                 }
             })
-        })
 
-    @staticmethod
-    def enviar_filas_disponiveis(qrcode_str, local_id):
-        qrcode = QRCode.objects.get(qrcode=qrcode_str)
-        cliente = Cliente.objects.get(username=qrcode.user.username)
+    def enviar_filas_disponiveis(self, qrcode, local_id):
         local = Local.objects.get(pk=local_id)
         qrcode.local = local
         qrcode.save()
         filas = [ model_to_dict(f) for f in local.filas.all() ]
-        cliente.get_grupo().send({
-            'text': json.dumps({
+        self.dispatcher.send(self, {
                 'message': 'FILAS_DISPONIBLES',
                 'data':{
                     'filas': filas,
                     'qrcode': qrcode.qrcode,
-                },
-            })})
+                }
+            })
 
 class Local(models.Model):
 
