@@ -83,7 +83,7 @@ Nesta app o funcionario que esteja no posto podera realizar as seguintes operaç
 - Instalar as dependencias: `pip install -r requirements.txt`
 - Executar setenv: `source setenv.sh`
 - Aplicar as migrações ao banco de dados: `./manage.py migrate`
-- Executar a aplicação: `./manage.py runserver` ou `./runserver.sh`
+- Executar a aplicação: `./manage.py runserver` ou `source runserver.sh`
 
 ## Considerações
 
