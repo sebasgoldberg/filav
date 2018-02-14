@@ -10,3 +10,4 @@ psycopg2
 pyopenssl
 social-auth-app-django
 django_python3_ldap
+python-telegram-bot

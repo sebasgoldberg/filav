@@ -273,3 +273,5 @@ LOGGING = {
 """
 ### LDAP CONGIG END
 """
+
+TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN','')

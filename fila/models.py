@@ -95,13 +95,38 @@ class ChannelsDispatcher:
             })
 
 
+class Telegram(models.Model):
+
+    user = models.OneToOneField(
+        User,
+        verbose_name=_('Usuario'),
+        on_delete=models.CASCADE,
+    )
+
+    chat_id = models.CharField(
+        max_length=100,
+        verbose_name=_('Chat ID'),
+        unique=True
+    )
+
+
+import telegram
+from django.conf import settings
+
+class TelegramDispatcher:
+
+    def send(self, cliente, data):
+        bot = telegram.Bot(token=settings.TELEGRAM_BOT_TOKEN)
+        bot.send_message(chat_id=cliente.telegram.chat_id, text=json.dumps(data))
+
+
 class Cliente(User):
 
     class Meta:
         proxy = True
 
     def is_channel_client(self):
-        return True
+        return self.telegram is None
 
     def __init__(self, *args, **kwargs):
         super(Cliente, self).__init__(*args, **kwargs)
