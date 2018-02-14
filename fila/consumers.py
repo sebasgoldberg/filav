@@ -30,7 +30,6 @@ class PostoConsumer(JsonWebsocketConsumer):
 
     def ocupar_posto(self, content):
         p = Posto.objects.get(pk=content['posto'])
-        p.get_grupo().add(self.message.reply_channel)
         self.funcionario.ocupar_posto(p)
 
     def chamar_seguinte(self, content):
@@ -120,45 +119,15 @@ class FilaConsumer(JsonWebsocketConsumer):
 
     def get_estado(self, content={}):
         cliente = Cliente.get_from_user(self.message.user)
-        try:
-            turno = cliente.get_turno_ativo()
-            cliente.get_grupo().send({
-                'text': json.dumps({
-                    'message': 'TURNO_ATIVO',
-                    'data': { 'turno': turno.to_dict(), }
-                })})
-        except Turno.DoesNotExist:
-            self.quero_entrar_na_fila(content)
-
-    def quero_entrar_na_fila(self, content={}):
-        c = Cliente.get_from_user(self.message.user)
-        grupo_cliente = c.get_grupo()
-        qrcode, _ = QRCode.objects.get_or_create(user=c)
-        grupo_cliente.send({
-            'text': json.dumps({
-                "message": "QR_CODE",
-                "data":{
-                    "qrcode": qrcode.qrcode,
-                }
-            })
-        })
-
+        cliente.get_estado()
 
     def entrar_na_fila(self, content):
         c = Cliente.get_from_user(self.message.user)
-        f = Fila.objects.get(pk=content['fila'])
-        qrcode = QRCode.objects.get(qrcode=content['qrcode'], user=c, local=f.local)
-        t = c.entrar_na_fila(f)
-        t.get_grupo().add(self.message.reply_channel)
-        f.get_grupo().add(self.message.reply_channel)
-        self.get_estado()
-        qrcode.delete()
+        t = c.entrar_na_fila(content['fila'], content['qrcode'])
 
     def sair_da_fila(self, content):
         c = Cliente.get_from_user(self.message.user)
-        t = Turno.objects.get(pk=content['turno'], cliente=c)
-        t.cancelar()
-        self.get_estado()
+        c.sair_da_fila(content['turno'])
 
     def receive(self, content, **kwargs):
         if self.message.user.is_authenticated:
@@ -195,21 +164,7 @@ class ScannerConsumer(JsonWebsocketConsumer):
         para o usuario.
         self.message.user é o scanner e deve ter as permissões necessarias.
         """
-        # @todo Adicionar a validação de permissões.
-        qrcode = QRCode.objects.get(qrcode=data['qrcode'])
-        cliente = Cliente.objects.get(username=qrcode.user.username)
-        local = Local.objects.get(pk=data['local'])
-        qrcode.local = local
-        qrcode.save()
-        filas = [ model_to_dict(f) for f in local.filas.all() ]
-        cliente.get_grupo().send({
-            'text': json.dumps({
-                'message': 'FILAS_DISPONIBLES',
-                'data':{
-                    'filas': filas,
-                    'qrcode': qrcode.qrcode,
-                },
-            })})
+        Cliente.enviar_filas_disponiveis(data['qrcode'], data['local'])
 
     def receive(self, content, **kwargs):
         if ( self.message.user.is_authenticated and

@@ -721,6 +721,7 @@ class MensagensFuncionarioTestCase(ChannelTestCase):
 
         wsp1.desocupar_posto()
 
+        wsp1.receive()
         self.assertEqual(
             wsp1.receive(),
             {   

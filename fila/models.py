@@ -96,19 +96,71 @@ class Cliente(User):
     def get_from_user(user):
         return Cliente.objects.get(pk=user.pk)
 
-    def entrar_na_fila(self, fila):
-        turno = Turno.objects.create(
-            fila=fila,
-            cliente=self
-        )
-        fila.avancar()
-        return turno
-
     def get_turno_ativo(self):
         return Turno.ativos.get(cliente=self)
 
     def get_grupo(self):
         return PersistedGroup('cliente-%s' % self.pk)
+
+    def get_estado(self):
+        try:
+            self.enviar_turno_ativo()
+        except Turno.DoesNotExist:
+            self.enviar_qrcode()
+
+    def entrar_na_fila(self, fila_id, qrcode_str):
+        fila = Fila.objects.get(pk=fila_id)
+        qrcode = QRCode.objects.get(qrcode=qrcode_str, user=self, local=fila.local)
+        turno = Turno.objects.create(
+            fila=fila,
+            cliente=self
+        )
+        fila.avancar()
+        qrcode.delete()
+        self.get_estado()
+        return turno
+
+    def sair_da_fila(self, turno_id):
+        t = Turno.objects.get(pk=turno_id, cliente=self)
+        t.cancelar()
+        self.get_estado()
+
+
+    def enviar_turno_ativo(self):
+        turno = self.get_turno_ativo()
+        self.get_grupo().send({
+            'text': json.dumps({
+                'message': 'TURNO_ATIVO',
+                'data': { 'turno': turno.to_dict(), }
+            })})
+
+    def enviar_qrcode(self):
+        qrcode, _ = QRCode.objects.get_or_create(user=self)
+        self.get_grupo().send({
+            'text': json.dumps({
+                "message": "QR_CODE",
+                "data":{
+                    "qrcode": qrcode.qrcode,
+                }
+            })
+        })
+
+    @staticmethod
+    def enviar_filas_disponiveis(qrcode_str, local_id):
+        qrcode = QRCode.objects.get(qrcode=qrcode_str)
+        cliente = Cliente.objects.get(username=qrcode.user.username)
+        local = Local.objects.get(pk=local_id)
+        qrcode.local = local
+        qrcode.save()
+        filas = [ model_to_dict(f) for f in local.filas.all() ]
+        cliente.get_grupo().send({
+            'text': json.dumps({
+                'message': 'FILAS_DISPONIBLES',
+                'data':{
+                    'filas': filas,
+                    'qrcode': qrcode.qrcode,
+                },
+            })})
 
 class Local(models.Model):
 
