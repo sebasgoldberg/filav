@@ -4,7 +4,9 @@ from django.contrib.auth.models import User
 
 from channels import Channel, Group
 from django.forms.models import model_to_dict
+
 import json
+import qrcode as qrlib
 
 class GroupChannels(models.Model):
 
@@ -87,12 +89,42 @@ class Funcionario(User):
     def get_grupo(self):
         return PersistedGroup('funcionario-%s' % self.pk)
 
-class ChannelsDispatcher:
+class BaseDispatcher:
 
-    def send(self, cliente, data):
-        cliente.get_grupo().send({
+    def __init__(self, user):
+        self.user = user
+
+    def enviar_qrcode(self, qrcode):
+        self.send({
+            "message": "QR_CODE",
+            "data":{
+                "qrcode": qrcode,
+            }
+        })
+
+class ChannelsDispatcher(BaseDispatcher):
+
+    def send(self, data):
+        self.user.get_grupo().send({
             'text': json.dumps(data)
             })
+
+from io import BytesIO
+
+class TelegramDispatcher(BaseDispatcher):
+
+    def enviar_qrcode(self, qrcode):
+        bot = telegram.Bot(token=settings.TELEGRAM_BOT_TOKEN)
+        img = qrlib.make(qrcode)
+        bio = BytesIO()
+        bio.name = 'image.jpeg'
+        img.save(bio, 'JPEG')
+        bio.seek(0)
+        bot.send_photo(self.user.telegram.chat_id, photo=bio)
+        
+    def send(self, data):
+        bot = telegram.Bot(token=settings.TELEGRAM_BOT_TOKEN)
+        bot.send_message(chat_id=self.user.telegram.chat_id, text=json.dumps(data))
 
 
 class Telegram(models.Model):
@@ -113,27 +145,23 @@ class Telegram(models.Model):
 import telegram
 from django.conf import settings
 
-class TelegramDispatcher:
-
-    def send(self, cliente, data):
-        bot = telegram.Bot(token=settings.TELEGRAM_BOT_TOKEN)
-        bot.send_message(chat_id=cliente.telegram.chat_id, text=json.dumps(data))
-
-
 class Cliente(User):
 
     class Meta:
         proxy = True
 
     def is_channel_client(self):
-        return self.telegram is None
+        try:
+            return self.telegram is None
+        except Telegram.DoesNotExist:
+            return True
 
     def __init__(self, *args, **kwargs):
         super(Cliente, self).__init__(*args, **kwargs)
         if self.is_channel_client():
-            self.dispatcher = ChannelsDispatcher()
+            self.dispatcher = ChannelsDispatcher(self)
         else:
-            self.dispatcher = TelegramDispatcher()
+            self.dispatcher = TelegramDispatcher(self)
 
     @staticmethod
     def get_from_user(user):
@@ -172,26 +200,21 @@ class Cliente(User):
     def enviar_turno_ativo(self, turno=None):
         if turno is None:
             turno = self.get_turno_ativo()
-        self.dispatcher.send(self, {
+        self.dispatcher.send({
                 'message': 'TURNO_ATIVO',
                 'data': { 'turno': turno.to_dict(), }
             })
 
     def enviar_qrcode(self):
         qrcode, _ = QRCode.objects.get_or_create(user=self)
-        self.dispatcher.send(self, {
-                "message": "QR_CODE",
-                "data":{
-                    "qrcode": qrcode.qrcode,
-                }
-            })
+        self.dispatcher.enviar_qrcode(qrcode.qrcode)
 
     def enviar_filas_disponiveis(self, qrcode, local_id):
         local = Local.objects.get(pk=local_id)
         qrcode.local = local
         qrcode.save()
         filas = [ model_to_dict(f) for f in local.filas.all() ]
-        self.dispatcher.send(self, {
+        self.dispatcher.send({
                 'message': 'FILAS_DISPONIBLES',
                 'data':{
                     'filas': filas,

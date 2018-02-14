@@ -8,6 +8,7 @@ import logging
 
 from fila.models import Telegram, Cliente
 
+
 def get_cliente_from_chat_id(chat_id):
     telegram = None
     try:
