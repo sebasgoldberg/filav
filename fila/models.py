@@ -8,6 +8,30 @@ from django.forms.models import model_to_dict
 import json
 import qrcode as qrlib
 
+"""
+ Media de tempo por local e fila:
+En(x) = SUM(xi)/n
+En+1(x) = SUM(xi)+xn+1/n+1 = SUM(xi)/n+1 + xn+1/n+1
+SUM(xi)/n+1 = 1/(n/SUM(xi) + 1/SUM(xi)) = 1/(1/En + 1/n*En) = 1 / (n + 1) / n*En = n*En/(n+1) 
+En+1(x) = SUM(xi)+xn+1/n+1 = SUM(xi)/n+1 + xn+1/n+1 = n*En/(n+1) + xn+1/n+1 # Calculado por local e por fila.
+En+1(x) = n*En(x)/(n+1) + xn+1/n+1 # Calculo da media n+1 baseado na media En
+Para realizar o calculo precisamos salvar por fila:
+- E(x)
+- n
+E o mesmo deve ser feito ao finalizar o atendimento.
+
+VARn(x) = E(x^2) - E(x)^2
+En+1(x^2) = n*En(x^2)/(n+1) + xn+1^2/n+1 # Calculo da media n+1 do x^2 baseado na media En(x^2)
+VARn+1(x) = n*En(x^2)/(n+1) + xn+1^2/n+1 - (n*En(x)/(n+1) + xn+1/n+1)^2
+
+A partir de E(x) e VAR(x), pelo teorema central do limite, podemos obter um minimo e maximo de espera
+Fixando uma determinada probabilidade para os limites obtidos.
+Mas como a espera é uma sumatoria de esperanças, no limite do infinito a variança poderia ser despreciada.
+Assim a espera poderia ser calculada como E(x)*#(turnos(fia))/#(postos) + E(x)
+O ultimo termino é pela demora no posto que esta atendendo.
+"""
+
+
 class GroupChannels(models.Model):
 
     group_name = models.CharField(
@@ -183,8 +207,13 @@ class TelegramDispatcher(BaseDispatcher):
                  text=ugt("Você foi chamado!\nPor favor ir no posto %(posto)s." % {'posto':turno.posto.nome}),
                  reply_markup=reply_markup)
         elif turno.is_no_atendimento():
+            button_list = [
+                InlineKeyboardButton(ugt('Atualizar'), callback_data='GET_ESTADO')
+            ]
+            reply_markup = InlineKeyboardMarkup(self._build_menu(button_list, n_cols=1))
             self.bot.send_message(self.user.telegram.chat_id,
-                 text=ugt("Você esta no atendimento do %(posto)s." % {'posto':turno.posto.nome}))
+                 text=ugt("Você esta no atendimento do %(posto)s." % {'posto':turno.posto.nome}),
+                 reply_markup=reply_markup)
         else:
             button_list = [
                 InlineKeyboardButton(ugt('Entrar em outra fila'), callback_data='GET_ESTADO')
@@ -272,7 +301,6 @@ class Cliente(User):
             posto.chamar_seguinte()
         elif t.is_na_fila():
             t.cancelar()
-            self.get_estado()
 
     def enviar_turno_ativo(self, turno=None):
         if turno is None:
@@ -428,6 +456,7 @@ class Turno(models.Model):
         for channel in [x for x  in tg.channels]:
             tg.discard(channel)
             fg.discard(channel)
+        self.notificar()
 
     def finalizar_atencao(self):
         self.estado = Turno.ATENDIDO
