@@ -102,6 +102,22 @@ class BaseDispatcher:
             }
         })
 
+    def enviar_filas_disponiveis(self, filas, qrcode):
+        self.send({
+            'message': 'FILAS_DISPONIBLES',
+            'data':{
+                'filas': filas,
+                'qrcode': qrcode.qrcode,
+            }
+        })
+
+    def enviar_turno(self, turno):
+        self.send({
+            'message': 'TURNO_ATIVO',
+            'data': { 'turno': turno.to_dict(), }
+        })
+
+
 class ChannelsDispatcher(BaseDispatcher):
 
     def send(self, data):
@@ -110,21 +126,78 @@ class ChannelsDispatcher(BaseDispatcher):
             })
 
 from io import BytesIO
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 class TelegramDispatcher(BaseDispatcher):
 
+    def __init__(self, *args, **kwargs):
+        super(TelegramDispatcher, self).__init__(*args, **kwargs)
+        self.bot = telegram.Bot(token=settings.TELEGRAM_BOT_TOKEN)
+
+    def _build_menu(self, buttons, n_cols, header_buttons=None,
+        footer_buttons=None):
+        menu = [buttons[i:i + n_cols] for i in range(0, len(buttons), n_cols)]
+        if header_buttons:
+            menu.insert(0, header_buttons)
+        if footer_buttons:
+            menu.append(footer_buttons)
+        return menu
+
     def enviar_qrcode(self, qrcode):
-        bot = telegram.Bot(token=settings.TELEGRAM_BOT_TOKEN)
         img = qrlib.make(qrcode)
         bio = BytesIO()
         bio.name = 'image.jpeg'
         img.save(bio, 'JPEG')
         bio.seek(0)
-        bot.send_photo(self.user.telegram.chat_id, photo=bio)
-        
+        self.bot.send_photo(self.user.telegram.chat_id, photo=bio, 
+            caption=_('Para entrar numa fila, por favor passar o codigo QR por algum dos scanners disponiveis.'))
+
+    def enviar_filas_disponiveis(self, filas, qrcode):
+
+        button_list = [
+            InlineKeyboardButton(fila['nome'], callback_data='ENTRAR_NA_FILA %(fila)s %(qrcode)s' % {'fila':fila['id'], 'qrcode': qrcode.id}) for fila in filas
+        ]
+        reply_markup = InlineKeyboardMarkup(self._build_menu(button_list, n_cols=1))
+        self.bot.send_message(self.user.telegram.chat_id,
+             text=ugt("Por favor, selecionar a fila na que deseja entrar:"),
+             reply_markup=reply_markup)
+
+    def enviar_turno(self, turno):
+
+        if turno.is_na_fila():
+            button_list = [
+                InlineKeyboardButton(ugt('Sair da fila'), callback_data='SAIR_DA_FILA %(turno)s' % {'turno':turno.id, }),
+                InlineKeyboardButton(ugt('Atualizar'), callback_data='GET_ESTADO')
+            ]
+            reply_markup = InlineKeyboardMarkup(self._build_menu(button_list, n_cols=1))
+            self.bot.send_message(self.user.telegram.chat_id,
+                 text=ugt("Você esta na %(posicao)s° posição da fila %(fila)s." % {'posicao': turno.get_posicao(), 'fila': turno.fila.nome}),
+                 reply_markup=reply_markup)
+        elif turno.is_cliente_chamado():
+            button_list = [
+                InlineKeyboardButton(ugt('Sair da fila'), callback_data='SAIR_DA_FILA %(turno)s' % {'turno':turno.id, }),
+                InlineKeyboardButton(ugt('Atualizar'), callback_data='GET_ESTADO')
+            ]
+            reply_markup = InlineKeyboardMarkup(self._build_menu(button_list, n_cols=1))
+            self.bot.send_message(self.user.telegram.chat_id,
+                 text=ugt("Você foi chamado!\nPor favor ir no posto %(posto)s." % {'posto':turno.posto.nome}),
+                 reply_markup=reply_markup)
+        elif turno.is_no_atendimento():
+            self.bot.send_message(self.user.telegram.chat_id,
+                 text=ugt("Você esta no atendimento do %(posto)s." % {'posto':turno.posto.nome}))
+        else:
+            button_list = [
+                InlineKeyboardButton(ugt('Entrar em outra fila'), callback_data='GET_ESTADO')
+            ]
+            reply_markup = InlineKeyboardMarkup(self._build_menu(button_list, n_cols=1))
+            self.bot.send_message(self.user.telegram.chat_id,
+                 text=ugt("Seu turno ficou com estado %(estado)s" % {'estado':turno.texto_estado()}),
+                 reply_markup=reply_markup)
+
+
+
     def send(self, data):
-        bot = telegram.Bot(token=settings.TELEGRAM_BOT_TOKEN)
-        bot.send_message(chat_id=self.user.telegram.chat_id, text=json.dumps(data))
+        self.bot.send_message(chat_id=self.user.telegram.chat_id, text=json.dumps(data))
 
 
 class Telegram(models.Model):
@@ -186,24 +259,25 @@ class Cliente(User):
             fila=fila,
             cliente=self
         )
-        fila.avancar()
         qrcode.delete()
         self.get_estado()
+        fila.avancar()
         return turno
 
     def sair_da_fila(self, turno_id):
         t = Turno.objects.get(pk=turno_id, cliente=self)
-        t.cancelar()
-        self.get_estado()
-
+        if t.is_cliente_chamado():
+            posto = t.posto
+            posto.indicar_ausencia()
+            posto.chamar_seguinte()
+        elif t.is_na_fila():
+            t.cancelar()
+            self.get_estado()
 
     def enviar_turno_ativo(self, turno=None):
         if turno is None:
             turno = self.get_turno_ativo()
-        self.dispatcher.send({
-                'message': 'TURNO_ATIVO',
-                'data': { 'turno': turno.to_dict(), }
-            })
+        self.dispatcher.enviar_turno(turno)
 
     def enviar_qrcode(self):
         qrcode, _ = QRCode.objects.get_or_create(user=self)
@@ -214,13 +288,8 @@ class Cliente(User):
         qrcode.local = local
         qrcode.save()
         filas = [ model_to_dict(f) for f in local.filas.all() ]
-        self.dispatcher.send({
-                'message': 'FILAS_DISPONIBLES',
-                'data':{
-                    'filas': filas,
-                    'qrcode': qrcode.qrcode,
-                }
-            })
+        self.dispatcher.enviar_filas_disponiveis(filas, qrcode)
+
 
 class Local(models.Model):
 
@@ -271,9 +340,10 @@ class Fila(models.Model):
         if posto is None:
             return
         posto.chamar_cliente(turno)
-        turno.notificar()
-        for turno in Turno.ativos.filter(fila=self):
-            turno.notificar()
+        for turno_na_fila in Turno.ativos.filter(fila=self):
+            if turno_na_fila.pk == turno.pk:
+                continue
+            turno_na_fila.notificar()
 
 
 class TurnoAtivoManager(models.Manager):
@@ -337,6 +407,15 @@ class Turno(models.Model):
     last_modification = models.DateTimeField(auto_now=True)
 
     estado = models.IntegerField(choices=ESTADOS, default=NA_FILA)
+
+    def is_na_fila(self):
+        return self.estado == Turno.NA_FILA
+
+    def is_cliente_chamado(self):
+        return self.estado == Turno.CLIENTE_CHAMADO
+
+    def is_no_atendimento(self):
+        return self.estado == Turno.NO_ATENDIMENTO
 
     def get_grupo(self):
         return PersistedGroup('turno-%s' % self.pk)

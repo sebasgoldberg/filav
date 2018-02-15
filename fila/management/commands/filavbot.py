@@ -3,10 +3,10 @@ from django.conf import settings
 from django.contrib.auth.models import User
 
 from telegram.ext import Updater
-from telegram.ext import CommandHandler
+from telegram.ext import CommandHandler, CallbackQueryHandler
 import logging
 
-from fila.models import Telegram, Cliente
+from fila.models import Telegram, Cliente, QRCode
 
 
 def get_cliente_from_chat_id(chat_id):
@@ -33,6 +33,19 @@ def sair(bot, update, args):
     cliente = get_cliente_from_chat_id(update.message.chat_id)
     cliente.sair_da_fila(args[0])
 
+def query_handler(bot, update, *args, **optional_args):
+    cliente = get_cliente_from_chat_id(update.callback_query.message.chat.id)
+    callback_data = update.callback_query.data
+    parts = callback_data.split(' ')
+    command = parts[0]
+    if command == "ENTRAR_NA_FILA":
+        qrcode = QRCode.objects.get(pk=parts[2])
+        cliente.entrar_na_fila(parts[1], qrcode.qrcode)
+    elif command == "SAIR_DA_FILA":
+        cliente.sair_da_fila(parts[1])
+    elif command == "GET_ESTADO":
+        cliente.get_estado()
+
 class Command(BaseCommand):
     help = 'Executa o bot do telegram para fila virtual'
 
@@ -51,9 +64,11 @@ class Command(BaseCommand):
 
         logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
             level=logging.INFO)
+        dispatcher.add_handler(CommandHandler('start', start))
         dispatcher.add_handler(CommandHandler('atualizar', atualizar))
         dispatcher.add_handler(CommandHandler('entrar', entrar, pass_args=True))
         dispatcher.add_handler(CommandHandler('sair', sair, pass_args=True))
+        dispatcher.add_handler(CallbackQueryHandler(callback=query_handler, pass_user_data=True))
 
         updater.start_polling()
         updater.idle()
