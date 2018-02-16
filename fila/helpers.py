@@ -61,3 +61,10 @@ def clean_user_data(model_fields):
     model_fields['first_name'], model_fields['last_name'] = get_first_and_last_name(
         model_fields.get('first_name',''))
     return model_fields
+
+def get_or_create_qrcode(user, fila):
+
+    qrcode, _ = QRCode.objects.get_or_create(user=user)
+    qrcode.local = fila.local
+    qrcode.save()
+    return qrcode

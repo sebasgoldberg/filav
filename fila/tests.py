@@ -4,6 +4,7 @@ from .models import *
 from django.forms.models import model_to_dict
 from channels import Group
 from channels.test import ChannelTestCase, WSClient
+from django.utils import timezone as TZ
 
 class WSUsuario:
 
@@ -731,4 +732,28 @@ class MensagensFuncionarioTestCase(ChannelTestCase):
 
         self.assertIsNone(wsp1.receive())
 
+class TempoEsperaTestCase(TestCase):
 
+    def test_cliente_chamado_date_null(self):
+        
+        posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
+        cliente1 = h.get_or_create_cliente('c1')
+        t1 = cliente1.entrar_na_fila(posto1.fila.id, h.get_or_create_qrcode(cliente1, posto1.fila).qrcode)
+
+        self.assertIsNone(t1.cliente_chamado_date)
+
+    def test_cliente_chamado_date_registrado(self):
+
+        posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
+        cliente1 = h.get_or_create_cliente('c1')
+        t1 = cliente1.entrar_na_fila(posto1.fila.id, h.get_or_create_qrcode(cliente1, posto1.fila).qrcode)
+
+        t1.estado = Turno.CLIENTE_CHAMADO
+        ini_save = TZ.now()
+        t1.save()
+        end_save = TZ.now()
+
+        deltaClienteChamado = (end_save - t1.cliente_chamado_date).microseconds
+        deltaSave = (end_save - ini_save).microseconds
+
+        self.assertLessEqual(deltaClienteChamado, deltaSave)

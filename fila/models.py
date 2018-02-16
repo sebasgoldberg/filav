@@ -7,6 +7,7 @@ from django.forms.models import model_to_dict
 
 import json
 import qrcode as qrlib
+from django.utils import timezone as TZ
 
 """
  Media de tempo por local e fila:
@@ -435,6 +436,13 @@ class Turno(models.Model):
     last_modification = models.DateTimeField(auto_now=True)
 
     estado = models.IntegerField(choices=ESTADOS, default=NA_FILA)
+
+    cliente_chamado_date = models.DateTimeField(null=True, editable=False)
+
+    def save(self, *args, **kwargs):
+        if self.is_cliente_chamado() and self.cliente_chamado_date is None:
+            self.cliente_chamado_date = TZ.now()
+        return super(Turno, self).save(*args, **kwargs)
 
     def is_na_fila(self):
         return self.estado == Turno.NA_FILA
