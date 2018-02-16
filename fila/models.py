@@ -437,12 +437,22 @@ class Turno(models.Model):
 
     estado = models.IntegerField(choices=ESTADOS, default=NA_FILA)
 
-    cliente_chamado_date = models.DateTimeField(null=True, editable=False)
+    inicio_espera_date = models.DateTimeField(null=True, editable=False)
+    fim_espera_date = models.DateTimeField(null=True, editable=False)
 
     def save(self, *args, **kwargs):
-        if self.is_cliente_chamado() and self.cliente_chamado_date is None:
-            self.cliente_chamado_date = TZ.now()
+        if self.is_cliente_chamado() and self.inicio_espera_date is None:
+            self.inicio_espera_date = TZ.now()
+        if self.is_atendido() or self.is_ausente():
+            if self.fim_espera_date is None:
+                self.fim_espera_date = TZ.now()
         return super(Turno, self).save(*args, **kwargs)
+
+    def is_atendido(self):
+        return self.estado == Turno.ATENDIDO
+
+    def is_ausente(self):
+        return self.estado == Turno.AUSENTE
 
     def is_na_fila(self):
         return self.estado == Turno.NA_FILA

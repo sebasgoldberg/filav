@@ -734,15 +734,15 @@ class MensagensFuncionarioTestCase(ChannelTestCase):
 
 class TempoEsperaTestCase(TestCase):
 
-    def test_cliente_chamado_date_null(self):
+    def test_inicio_espera_date_null(self):
         
         posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
         cliente1 = h.get_or_create_cliente('c1')
         t1 = cliente1.entrar_na_fila(posto1.fila.id, h.get_or_create_qrcode(cliente1, posto1.fila).qrcode)
 
-        self.assertIsNone(t1.cliente_chamado_date)
+        self.assertIsNone(t1.inicio_espera_date)
 
-    def test_cliente_chamado_date_registrado(self):
+    def test_inicio_espera_date_registrado(self):
 
         posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
         cliente1 = h.get_or_create_cliente('c1')
@@ -753,7 +753,41 @@ class TempoEsperaTestCase(TestCase):
         t1.save()
         end_save = TZ.now()
 
-        deltaClienteChamado = (end_save - t1.cliente_chamado_date).microseconds
-        deltaSave = (end_save - ini_save).microseconds
+        self.assertGreaterEqual(t1.inicio_espera_date, ini_save)
+        self.assertLessEqual(t1.inicio_espera_date, end_save)
 
-        self.assertLessEqual(deltaClienteChamado, deltaSave)
+    def test_fim_espera_date_null(self):
+        
+        posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
+        cliente1 = h.get_or_create_cliente('c1')
+        t1 = cliente1.entrar_na_fila(posto1.fila.id, h.get_or_create_qrcode(cliente1, posto1.fila).qrcode)
+
+        self.assertIsNone(t1.fim_espera_date)
+
+    def test_turno_finalizado_registrado_atendido(self):
+
+        posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
+        cliente1 = h.get_or_create_cliente('c1')
+        t1 = cliente1.entrar_na_fila(posto1.fila.id, h.get_or_create_qrcode(cliente1, posto1.fila).qrcode)
+
+        t1.estado = Turno.ATENDIDO
+        ini_save = TZ.now()
+        t1.save()
+        end_save = TZ.now()
+
+        self.assertGreaterEqual(t1.fim_espera_date, ini_save)
+        self.assertLessEqual(t1.fim_espera_date, end_save)
+
+    def test_turno_finalizado_registrado_ausente(self):
+
+        posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
+        cliente1 = h.get_or_create_cliente('c1')
+        t1 = cliente1.entrar_na_fila(posto1.fila.id, h.get_or_create_qrcode(cliente1, posto1.fila).qrcode)
+
+        t1.estado = Turno.AUSENTE
+        ini_save = TZ.now()
+        t1.save()
+        end_save = TZ.now()
+
+        self.assertGreaterEqual(t1.fim_espera_date, ini_save)
+        self.assertLessEqual(t1.fim_espera_date, end_save)
