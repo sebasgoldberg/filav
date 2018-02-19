@@ -196,7 +196,11 @@ class TelegramDispatcher(BaseDispatcher):
             ]
             reply_markup = InlineKeyboardMarkup(self._build_menu(button_list, n_cols=1))
             self.bot.send_message(self.user.telegram.chat_id,
-                 text=ugt("Você esta na %(posicao)s° posição da fila %(fila)s." % {'posicao': turno.get_posicao(), 'fila': turno.fila.nome}),
+                 text=ugt("Você esta na %(posicao)s° posição da fila %(fila)s.\nO tempo de espera aproximado é de %(espera)s minutos" % {
+                    'posicao': turno.get_posicao(),
+                    'fila': turno.fila.nome,
+                    'espera': turno.estimar_tempo_espera_minutos(),
+                    }),
                  reply_markup=reply_markup)
         elif turno.is_cliente_chamado():
             button_list = [
@@ -282,7 +286,7 @@ class Cliente(User):
         except Turno.DoesNotExist:
             self.enviar_qrcode()
 
-    def entrar_na_fila(self, fila_id, qrcode_str=None, test_mode=True):
+    def entrar_na_fila(self, fila_id, qrcode_str=None, test_mode=False):
         fila = Fila.objects.get(pk=fila_id)
         if not test_mode:
             qrcode = QRCode.objects.get(qrcode=qrcode_str, user=self, local=fila.local)
@@ -426,6 +430,9 @@ class TurnoComEsperaGeradaManager(models.Manager):
     def get_queryset(self):
         return super(TurnoComEsperaGeradaManager, self).get_queryset().filter(estado__in=Turno.ESTADOS_ESPERA_GERADA)
 
+class SemPostosAtivos(Exception):
+    pass
+
 class Turno(models.Model):
 
     objects = models.Manager()
@@ -553,6 +560,14 @@ class Turno(models.Model):
                 break
         return i   
 
+    def estimar_tempo_espera(self):
+        posicao = self.get_posicao()
+        postos_ativos = max([self.fila.postos.exclude(estado=Posto.INATIVO).count(),1])
+        return self.fila.media_espera * posicao / postos_ativos
+
+    def estimar_tempo_espera_minutos(self):
+        return int(self.estimar_tempo_espera() / 60)
+
     def texto_estado(self):
         return Turno.ESTADOS_DICT[self.estado]
 
@@ -561,6 +576,7 @@ class Turno(models.Model):
         turno_dict['fila'] = model_to_dict(self.fila)
         turno_dict['fila']['local'] = model_to_dict(self.fila.local)
         turno_dict['posicao'] = self.get_posicao()
+        turno_dict['espera_estimada'] = self.estimar_tempo_espera_minutos()
         turno_dict['texto_estado'] = self.texto_estado()
         turno_dict['creation_date'] = str(self.creation_date)
         try:

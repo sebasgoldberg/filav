@@ -903,3 +903,79 @@ class TempoEsperaTestCase(TestCase):
 
         self.assertEqual(t1.fila.media_espera, 500)
 
+class EstimaEsperaTestCase(TestCase):
+
+    def test_estima_espera_um_cliente_sem_posto_ativo(self):
+
+        posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
+        cliente1 = h.get_or_create_cliente('c1')
+
+        posto1.fila.media_espera = 11
+        posto1.fila.save()
+
+        t1 = cliente1.entrar_na_fila(posto1.fila.pk, test_mode=True)
+
+        self.assertEqual(t1.estimar_tempo_espera(),11)
+
+    def test_estima_espera_um_cliente_um_posto(self):
+
+        posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
+        cliente1 = h.get_or_create_cliente('c1')
+
+        funcionario1 = h.get_or_create_funcionario_posto('f1')
+        funcionario1.ocupar_posto(posto1)
+
+        posto1.fila.media_espera = 11
+        posto1.fila.save()
+
+        t1 = cliente1.entrar_na_fila(posto1.fila.pk, test_mode=True)
+
+        self.assertEqual(t1.estimar_tempo_espera(),11)
+
+    def test_estima_espera_multiples_clientes_um_posto(self):
+
+        posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
+        cliente1 = h.get_or_create_cliente('c1')
+        cliente2 = h.get_or_create_cliente('c2')
+        cliente3 = h.get_or_create_cliente('c3')
+
+        funcionario1 = h.get_or_create_funcionario_posto('f1')
+        funcionario1.ocupar_posto(posto1)
+
+        posto1.fila.media_espera = 11
+        posto1.fila.save()
+
+        t1 = cliente1.entrar_na_fila(posto1.fila.pk, test_mode=True)
+        t2 = cliente2.entrar_na_fila(posto1.fila.pk, test_mode=True)
+        t3 = cliente3.entrar_na_fila(posto1.fila.pk, test_mode=True)
+
+        self.assertEqual(t1.estimar_tempo_espera(),11)
+        self.assertEqual(t2.estimar_tempo_espera(),22)
+        self.assertEqual(t3.estimar_tempo_espera(),33)
+
+
+    def test_estima_espera_multiples_clientes_multiples_postos(self):
+
+        posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
+        posto2 = h.get_or_create_posto(['l1', 'f1', 'p2'])
+        posto3 = h.get_or_create_posto(['l1', 'f1', 'p3'])
+        cliente1 = h.get_or_create_cliente('c1')
+        cliente2 = h.get_or_create_cliente('c2')
+        cliente3 = h.get_or_create_cliente('c3')
+        funcionario1 = h.get_or_create_funcionario_posto('f1')
+        funcionario2 = h.get_or_create_funcionario_posto('f2')
+
+        funcionario1.ocupar_posto(posto1)
+        funcionario2.ocupar_posto(posto2)
+
+        posto1.fila.media_espera = 11
+        posto1.fila.save()
+
+        t1 = cliente1.entrar_na_fila(posto1.fila.pk, test_mode=True)
+        t2 = cliente2.entrar_na_fila(posto1.fila.pk, test_mode=True)
+        t3 = cliente3.entrar_na_fila(posto1.fila.pk, test_mode=True)
+
+        self.assertEqual(t1.estimar_tempo_espera(),5.5)
+        self.assertEqual(t2.estimar_tempo_espera(),11)
+        self.assertEqual(t3.estimar_tempo_espera(),16.5)
+
