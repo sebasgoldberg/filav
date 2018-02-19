@@ -423,6 +423,10 @@ class Fila(models.Model):
                 continue
             turno_na_fila.notificar()
 
+    def notificar_turnos_ativos(self):
+        for turno in Turno.ativos.filter(fila=self):
+            turno.notificar()
+
 
 class TurnoAtivoManager(models.Manager):
 
@@ -684,6 +688,7 @@ class Posto(models.Model):
         self.estado = Posto.EM_PAUSA
         self.save()
         self.notificar()
+        self.fila.notificar_turnos_ativos()
 
     def chamar_seguinte(self):
         self.estado = Posto.ESPERANDO_CLIENTE
@@ -728,6 +733,7 @@ class Posto(models.Model):
         self.notificar()
         self.funcionario = None
         self.save()
+        self.fila.notificar_turnos_ativos()
 
     def texto_estado(self):
         return Posto.ESTADOS_DICT[self.estado]
