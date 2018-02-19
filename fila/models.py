@@ -286,6 +286,15 @@ class Cliente(User):
         except Turno.DoesNotExist:
             self.enviar_qrcode()
 
+    def get_nome(self):
+        if self.first_name and self.last_name:
+            return '%s %s' % (self.first_name, self.last_name)
+        if self.first_name:
+            return self.first_name
+        if self.last_name:
+            return self.last_name
+        return self.username
+
     def entrar_na_fila(self, fila_id, qrcode_str=None, test_mode=False):
         fila = Fila.objects.get(pk=fila_id)
         if not test_mode:
@@ -731,7 +740,7 @@ class Posto(models.Model):
             posto_dict['turno_em_atencao'] = model_to_dict(
                 self.turno_em_atencao)
             posto_dict['turno_em_atencao']['cliente'] = {
-                'name': self.turno_em_atencao.cliente.username
+                'name': self.turno_em_atencao.cliente.get_nome()
                 }
         posto_dict['texto_estado'] = self.texto_estado()
         posto_dict['estado'] = self.estado
