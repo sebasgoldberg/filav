@@ -85,6 +85,20 @@ Nesta app o funcionario que esteja no posto podera realizar as seguintes operaç
 - Aplicar as migrações ao banco de dados: `./manage.py migrate`
 - Executar a aplicação: `./manage.py runserver` ou `source runserver.sh`
 
+### Cron Jobs
+
+#### Calculo de Media de Tempo de Atendimento
+O calculo da media de tempo de atendimento é necessario para estimar o tempo de espera até ser atendido por cada fila.
+O calculo é baseado nos tempos de demora desde que foi chamado cada cliente até que foi atendido ou marcado como ausente, por isso o calculo é baseado nas informações obtidas a partir de cada turno.
+O calculo da media é realizado por fila.
+O comando para calcular a media é `./manage.py calc_media_espera` que por default realizará o calculo para todos os turnos completados nas ultimas duas horas.
+Para ver um detalhe dos parametros possiveis por favor executar `./manage.py help calc_media_espera`.
+É recomendavel executar este comando como um job cron. Uma possivel entrada para executar cada 15 minutos o calculo para todos os turnos acontecidos no ultimo dia e realizando a integração com journald:
+
+    ```
+    */15 * * * * (cd <path ao projeto> && source <path ao venv>/bin/activate && source ./setenv.sh && ./manage.py calc_media_espera --from 84600) 2>&1 | systemd-cat -t 'filav.calc_media_espera'
+    ```
+
 ## Considerações
 
 - A utilização de HTTPS é necesaria para conseguir utilizar a camera do scanner no navegador web.

@@ -5,6 +5,7 @@ from django.forms.models import model_to_dict
 from channels import Group
 from channels.test import ChannelTestCase, WSClient
 from django.utils import timezone as TZ
+from datetime import timedelta as TD
 
 class WSUsuario:
 
@@ -791,3 +792,114 @@ class TempoEsperaTestCase(TestCase):
 
         self.assertGreaterEqual(t1.fim_espera_date, ini_save)
         self.assertLessEqual(t1.fim_espera_date, end_save)
+
+    def test_media_tempo_espera_um_turno(self):
+
+        posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
+        cliente1 = h.get_or_create_cliente('c1')
+        t1 = cliente1.entrar_na_fila(posto1.fila.id, test_mode=True)
+
+        t1.estado = Turno.ATENDIDO
+        t1.inicio_espera_date = TZ.now()
+        t1.fim_espera_date = t1.inicio_espera_date + TD(seconds=355)
+
+        t1.save()
+
+        t1.fila.refresh_from_db()
+
+        t1.fila.calcular_media_espera(dt_from=t1.inicio_espera_date, dt_to=t1.fim_espera_date)
+
+        self.assertEqual(t1.fila.media_espera, 355)
+
+    def test_media_tempo_espera_multiples_turnos(self):
+
+        posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
+        cliente1 = h.get_or_create_cliente('c1')
+
+        # (inicio atendimento, tempo atendimento): Simulamos 2 postos de atendimento
+        esperas = [(0,355), (15,299), (356,344), (314,600), (700,245), (914,33)]
+        media = sum(map(lambda x: x[1],esperas))/len(esperas)
+        inicio_atendimento = TZ.now()
+        fim_atendimento = inicio_atendimento + TD(seconds=950)
+
+        for espera in esperas:
+            t1 = cliente1.entrar_na_fila(posto1.fila.id, test_mode=True)
+            t1.estado = Turno.ATENDIDO
+            t1.inicio_espera_date = inicio_atendimento + TD(seconds=espera[0])
+            t1.fim_espera_date = t1.inicio_espera_date + TD(seconds=espera[1])
+            t1.save()
+
+        t1.fila.refresh_from_db()
+
+        t1.fila.calcular_media_espera(dt_from=inicio_atendimento, dt_to=fim_atendimento)
+
+        t1.refresh_from_db()
+
+        self.assertEqual(t1.fila.media_espera, media)
+
+    def test_media_tempo_espera_por_fila(self):
+
+        posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
+        posto2 = h.get_or_create_posto(['l1', 'f2', 'p1'])
+        cliente1 = h.get_or_create_cliente('c1')
+
+        # (inicio atendimento, tempo atendimento): Simulamos 2 postos de atendimento
+        esperas = [(0,355), (15,299), (356,344), (314,600), (700,245), (914,33)]
+        media = sum(map(lambda x: x[1],esperas))/len(esperas)
+        inicio_atendimento = TZ.now()
+        fim_atendimento = inicio_atendimento + TD(seconds=950)
+
+        t1 = cliente1.entrar_na_fila(posto2.fila.id, test_mode=True)
+        t1.estado = Turno.ATENDIDO
+        t1.inicio_espera_date = inicio_atendimento + TD(seconds=10)
+        t1.fim_espera_date = t1.inicio_espera_date + TD(seconds=600)
+        t1.save()
+
+        for espera in esperas:
+            t1 = cliente1.entrar_na_fila(posto1.fila.id, test_mode=True)
+            t1.estado = Turno.ATENDIDO
+            t1.inicio_espera_date = inicio_atendimento + TD(seconds=espera[0])
+            t1.fim_espera_date = t1.inicio_espera_date + TD(seconds=espera[1])
+            t1.save()
+
+        t1.fila.refresh_from_db()
+
+        t1.fila.calcular_media_espera(dt_from=inicio_atendimento, dt_to=fim_atendimento)
+
+        t1.refresh_from_db()
+
+        self.assertEqual(t1.fila.media_espera, media)
+
+
+    def test_media_tempo_espera_qtd_minima_turnos(self):
+
+        posto1 = h.get_or_create_posto(['l1', 'f1', 'p1'])
+        cliente1 = h.get_or_create_cliente('c1')
+
+        # (inicio atendimento, tempo atendimento): Simulamos 2 postos de atendimento
+        esperas = [(0,355), (15,299), (356,344), (314,600), (700,245), (914,33)]
+        media = sum(map(lambda x: x[1],esperas))/len(esperas)
+        inicio_atendimento = TZ.now()
+        fim_atendimento = inicio_atendimento + TD(seconds=950)
+
+        for espera in esperas:
+            t1 = cliente1.entrar_na_fila(posto1.fila.id, test_mode=True)
+            t1.estado = Turno.ATENDIDO
+            t1.inicio_espera_date = inicio_atendimento + TD(seconds=espera[0])
+            t1.fim_espera_date = t1.inicio_espera_date + TD(seconds=espera[1])
+            t1.save()
+
+        t1.fila.refresh_from_db()
+
+        t1.fila.media_espera = 500
+        t1.fila.save()
+
+        t1.fila.refresh_from_db()
+
+        with self.assertRaises(SemQtdMinTurnosParaCalcularMediaEspera):
+            t1.fila.calcular_media_espera(dt_from=inicio_atendimento, dt_to=fim_atendimento, qtd_min_turnos=7)
+
+        t1.refresh_from_db()
+
+        self.assertEqual(t1.fila.media_espera, 500)
+

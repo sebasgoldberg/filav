@@ -282,14 +282,16 @@ class Cliente(User):
         except Turno.DoesNotExist:
             self.enviar_qrcode()
 
-    def entrar_na_fila(self, fila_id, qrcode_str):
+    def entrar_na_fila(self, fila_id, qrcode_str=None, test_mode=True):
         fila = Fila.objects.get(pk=fila_id)
-        qrcode = QRCode.objects.get(qrcode=qrcode_str, user=self, local=fila.local)
+        if not test_mode:
+            qrcode = QRCode.objects.get(qrcode=qrcode_str, user=self, local=fila.local)
         turno = Turno.objects.create(
             fila=fila,
             cliente=self
         )
-        qrcode.delete()
+        if not test_mode:
+            qrcode.delete()
         self.get_estado()
         fila.avancar()
         return turno
@@ -332,6 +334,12 @@ class Local(models.Model):
         return self.nome
 
 
+class SemTurnosParaCalcularMediaEspera(Exception):
+    pass
+
+class SemQtdMinTurnosParaCalcularMediaEspera(Exception):
+    pass
+
 class Fila(models.Model):
 
     local = models.ForeignKey(
@@ -346,6 +354,10 @@ class Fila(models.Model):
         verbose_name=_('Nome'),
     )
 
+    media_espera = models.PositiveIntegerField(
+        _('Tempo de atendimento medio (segundos)'),
+        default=0)
+
     class Meta:
         verbose_name = _("Fila")
         verbose_name_plural = _("Filas")
@@ -353,6 +365,30 @@ class Fila(models.Model):
 
     def __str__(self):
         return '%s.%s' % (self.local, self.nome)
+
+    def calcular_media_espera(self, dt_from=None, dt_to=None, qtd_min_turnos=None):
+        if dt_to is None:
+            dt_to = TZ.now()
+        if dt_from is None:
+            dt_from = dt_to - TD(seconds=2*60*60)
+        esperas = Turno.com_espera_gerada.filter(
+            fila=self,
+            inicio_espera_date__gte=dt_from,
+            fim_espera_date__lte=dt_to)
+        qtd_turnos = esperas.count()
+        if qtd_turnos == 0:
+            raise SemTurnosParaCalcularMediaEspera(
+                _('Não foram encontrados turnos para calcular a media de espera.'))
+        if qtd_min_turnos is not None:
+            if esperas.count() < qtd_min_turnos:
+                raise SemQtdMinTurnosParaCalcularMediaEspera(
+                    _('Não foi atingida a quantidade minima de turnos para calcular a media de espera.'))
+        espera_total = 0
+        for espera in esperas:
+            espera_total += (espera.fim_espera_date -
+                espera.inicio_espera_date).total_seconds()
+        self.media_espera = espera_total / len(esperas)
+        self.save()
 
     def get_grupo(self):
         return PersistedGroup('fila-%s' % self.pk)
@@ -385,11 +421,17 @@ class TurnoNaFilaManager(models.Manager):
     def get_queryset(self):
         return super(TurnoNaFilaManager, self).get_queryset().filter(estado=Turno.NA_FILA)
 
+class TurnoComEsperaGeradaManager(models.Manager):
+
+    def get_queryset(self):
+        return super(TurnoComEsperaGeradaManager, self).get_queryset().filter(estado__in=Turno.ESTADOS_ESPERA_GERADA)
+
 class Turno(models.Model):
 
     objects = models.Manager()
     ativos = TurnoAtivoManager()
     na_fila = TurnoNaFilaManager()
+    com_espera_gerada = TurnoComEsperaGeradaManager()
 
     INICIAL = 0
     NA_FILA = 1
@@ -403,6 +445,11 @@ class Turno(models.Model):
         NA_FILA,
         CLIENTE_CHAMADO,
         NO_ATENDIMENTO,
+    ]
+
+    ESTADOS_ESPERA_GERADA = [
+        AUSENTE,
+        ATENDIDO,
     ]
 
     ESTADOS = (
