@@ -85,9 +85,18 @@ Nesta app o funcionario que esteja no posto podera realizar as seguintes operaç
 - Aplicar as migrações ao banco de dados: `./manage.py migrate`
 - Executar a aplicação: `./manage.py runserver` ou `source runserver.sh`
 
-### Cron Jobs
+### Comandos Disponiveis
 
-#### Calculo de Media de Tempo de Atendimento
+#### filavbot: Bot Telegram para Clientes de Fila Virtual
+O comando filavbot executa um comando executa um processo para gerenciar as comunicações
+do bot de fila virtual com os distintos usuario Telefgram que tenham intenções de utilizar os
+serviços de fila virtual desde a app Telegram desde seu dispositivo.
+
+Para executar o mesmo é recomendavel criar o correspondente serviço (por exemplo usando systemd).
+Mas se é desejado executar o mesmo diretamente desde o terminal de usuario pode ser utilizada a seguinte sentencia
+de forma de forma de integrar a saida diretamente com journalctl: `systemd-cat -t 'filav.telegram' ./manage.py filavbot 2>&1`
+
+#### calc_media_espera: Calculo de Media de Tempo de Atendimento
 O calculo da media de tempo de atendimento é necessario para estimar o tempo de espera até ser atendido por cada fila.
 O calculo é baseado nos tempos de demora desde que foi chamado cada cliente até que foi atendido ou marcado como ausente, por isso o calculo é baseado nas informações obtidas a partir de cada turno.
 O calculo da media é realizado por fila.
