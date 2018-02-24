@@ -9,26 +9,28 @@ import logging
 from fila.models import Telegram, Cliente, QRCode
 
 
-def get_cliente_from_chat_id(chat_id, user=None):
-    telegram = None
+def get_cliente_from_chat_id(chat_id, chat=None):
+    tg = None
     try:
-        telegram = Telegram.objects.get(chat_id=chat_id)
+        tg = Telegram.objects.get(chat_id=chat_id)
     except Telegram.DoesNotExist:
         user = User.objects.create_user(username=chat_id)
-        telegram = Telegram.objects.create(user=user, chat_id=chat_id)
-    if user:
-        telegram.user.first_name=user.first_name
-        telegram.user.last_name=user.last_name
-        telegram.user.save()
+        tg = Telegram.objects.create(user=user, chat_id=chat_id)
+    if chat:
+        if chat.first_name:
+            tg.user.first_name = chat.first_name
+        if chat.last_name:
+            tg.user.last_name = chat.last_name
+        tg.user.save()
     
-    return Cliente.get_from_user(telegram.user)
+    return Cliente.get_from_user(tg.user)
 
 def start(bot, update):
     atualizar(bot, update)
 
 def atualizar(bot, update):
-    user = update.message.from_user
-    cliente = get_cliente_from_chat_id(update.message.chat_id, user)
+    chat = update.message.chat
+    cliente = get_cliente_from_chat_id(update.message.chat_id, chat)
     cliente.get_estado()
 
 def entrar(bot, update, args):
